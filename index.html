@@ -265,7 +265,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 .bnav-icon{font-size:20px;line-height:1;}
 .bnav-lbl{font-size:9px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--ink4);}
 .bnav-btn.active .bnav-lbl{color:var(--ink);}
-.bnav-book{background:var(--ink);border:none;border-radius:14px;padding:9px 20px;cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--white);font-family:'Mulish',sans-serif;font-size:12px;font-weight:700;}
+.bnav-btn.book-btn .bnav-icon{background:var(--ink);color:var(--white);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;font-style:normal;line-height:1;}
 
 /* ── AVAIL BOTTOM SHEET (mobile) ── */
 .avail-sheet{display:none;position:fixed;inset:0;z-index:400;}
@@ -360,7 +360,10 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
     <span class="bnav-icon">📅</span>
     <span class="bnav-lbl">Lịch</span>
   </button>
-  <button class="bnav-book" onclick="openModal()">＋ Đặt lịch</button>
+  <button class="bnav-btn" id="bnav-book" onclick="openModal();setBottomNav('book')">
+    <span class="bnav-icon">＋</span>
+    <span class="bnav-lbl">Đặt lịch</span>
+  </button>
   <button class="bnav-btn" id="bnav-avail" onclick="openAvailSheet()">
     <span class="bnav-icon">🔍</span>
     <span class="bnav-lbl">Kiểm tra</span>
@@ -381,13 +384,33 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
       <button style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--ink3)" onclick="closeAvailSheet()">✕</button>
     </div>
     <div class="avail-panel-body">
-      <div class="sb-field" style="margin-bottom:10px">
-        <div class="sb-lbl">Ngày bắt đầu</div>
-        <input type="date" id="sb-start-m" onchange="syncAvailDates('m')">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="tbtn on" id="av-mode-daily" onclick="setAvailMode('daily')" style="flex:1;text-align:center">Theo ngày</div>
+        <div class="tbtn" id="av-mode-shift" onclick="setAvailMode('shift')" style="flex:1;text-align:center">Theo ca</div>
       </div>
-      <div class="sb-field" style="margin-bottom:14px">
-        <div class="sb-lbl">Ngày kết thúc</div>
-        <input type="date" id="sb-end-m" onchange="syncAvailDates('m')">
+      <div id="av-daily-sec">
+        <div class="sb-field" style="margin-bottom:10px">
+          <div class="sb-lbl">Ngày bắt đầu</div>
+          <input type="date" id="sb-start-m" onchange="syncAvailDates('m')">
+        </div>
+        <div class="sb-field" style="margin-bottom:12px">
+          <div class="sb-lbl">Ngày kết thúc</div>
+          <input type="date" id="sb-end-m" onchange="syncAvailDates('m')">
+        </div>
+      </div>
+      <div id="av-shift-sec" style="display:none">
+        <div class="sb-field" style="margin-bottom:10px">
+          <div class="sb-lbl">Ngày</div>
+          <input type="date" id="sb-shift-date">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <div class="stile" id="av-sh-mc" onclick="selectAvailShift('morning-afternoon')" style="flex:1">
+            <div class="sn">Sáng – Chiều</div><div class="st">08:00 – 15:00</div>
+          </div>
+          <div class="stile" id="av-sh-ae" onclick="selectAvailShift('afternoon-evening')" style="flex:1">
+            <div class="sn">Chiều – Tối</div><div class="st">16:00 – 23:00</div>
+          </div>
+        </div>
       </div>
       <button class="btn-ok" style="width:100%;margin-bottom:14px" onclick="runAvailMobile()">Kiểm tra ngay</button>
       <div id="sb-result-m" class="sb-result"></div>
@@ -458,13 +481,33 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
           <div class="sidebar-title">Kiểm tra máy trống</div>
         </div>
         <div class="sidebar-body">
-          <div class="sb-field">
-            <div class="sb-lbl">Ngày bắt đầu</div>
-            <input type="date" id="sb-start" onchange="syncAvailDates('d')">
+          <div style="display:flex;gap:6px;margin-bottom:10px">
+            <div class="tbtn on" id="av-mode-daily-d" onclick="setAvailModeD('daily')" style="flex:1;text-align:center;font-size:11px;padding:6px 8px">Theo ngày</div>
+            <div class="tbtn" id="av-mode-shift-d" onclick="setAvailModeD('shift')" style="flex:1;text-align:center;font-size:11px;padding:6px 8px">Theo ca</div>
           </div>
-          <div class="sb-field" style="margin-bottom:12px">
-            <div class="sb-lbl">Ngày kết thúc</div>
-            <input type="date" id="sb-end" onchange="syncAvailDates('d')">
+          <div id="av-daily-sec-d">
+            <div class="sb-field">
+              <div class="sb-lbl">Ngày bắt đầu</div>
+              <input type="date" id="sb-start" onchange="syncAvailDates('d')">
+            </div>
+            <div class="sb-field" style="margin-bottom:10px">
+              <div class="sb-lbl">Ngày kết thúc</div>
+              <input type="date" id="sb-end" onchange="syncAvailDates('d')">
+            </div>
+          </div>
+          <div id="av-shift-sec-d" style="display:none">
+            <div class="sb-field" style="margin-bottom:8px">
+              <div class="sb-lbl">Ngày</div>
+              <input type="date" id="sb-shift-date-d">
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <div class="stile" id="av-sh-mc-d" onclick="selectAvailShiftD('morning-afternoon')" style="flex:1;padding:7px 6px">
+                <div class="sn" style="font-size:11px">Sáng–Chiều</div><div class="st">08–15h</div>
+              </div>
+              <div class="stile" id="av-sh-ae-d" onclick="selectAvailShiftD('afternoon-evening')" style="flex:1;padding:7px 6px">
+                <div class="sn" style="font-size:11px">Chiều–Tối</div><div class="st">16–23h</div>
+              </div>
+            </div>
           </div>
           <button class="btn-ok" style="width:100%;margin-bottom:12px" onclick="runAvail()">Kiểm tra</button>
           <div id="sb-result" class="sb-result"></div>
@@ -520,7 +563,14 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
       </div>
       <div class="mpanel" id="mp-revenue">
         <div class="mcard">
-          <div class="mcard-title">Doanh thu theo tháng</div>
+          <div class="mcard-title">
+            <span>Thống kê tháng</span>
+            <input type="month" id="rev-month" class="bk-chk" onchange="renderRevenue()">
+          </div>
+          <div id="rev-detail"></div>
+        </div>
+        <div class="mcard">
+          <div class="mcard-title">Tất cả các tháng</div>
           <div class="rev-grid" id="rev-grid"></div>
         </div>
       </div>
@@ -611,10 +661,10 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
         <div class="field" style="margin-bottom:10px"><label>Ngày thuê</label><input type="date" id="f-sdate" onchange="onDateChange()"></div>
         <div style="display:flex;gap:8px;margin-bottom:10px">
           <div class="stile" id="sh-mc" onclick="setShift('morning-afternoon')">
-            <div class="si">🌅☀️</div><div class="sn">Sáng – Chiều</div><div class="st">06:00 – 18:00</div>
+            <div class="si">🌅</div><div class="sn">Sáng – Chiều</div><div class="st">08:00 – 15:00</div>
           </div>
           <div class="stile" id="sh-ae" onclick="setShift('afternoon-evening')">
-            <div class="si">☀️🌙</div><div class="sn">Chiều – Tối</div><div class="st">12:00 – 24:00</div>
+            <div class="si">🌙</div><div class="sn">Chiều – Tối</div><div class="st">16:00 – 23:00</div>
           </div>
         </div>
         <div id="shift-preview" style="display:none" class="pbox">
@@ -684,9 +734,6 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
 <div class="toast" id="toast"></div>
 
 <script type="module">
-// ════════════════════════════════════════════
-// FIREBASE CONFIG — hanafujifilm-dev
-// ════════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import {
   getFirestore, collection, doc,
@@ -702,14 +749,13 @@ const firebaseConfig = {
   messagingSenderId: "510002277348",
   appId: "1:510002277348:web:152501eb26a96fe854b5f1"
 };
-
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
 // ════ CONSTANTS ════
-const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
-const CAM_COLORS = ['c1','c2','c3','c4','c5','c6','c7','c8'];
-const DEFAULT_CAMERAS = [
+const MONTHS_VI=['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+const CAM_COLORS=['c1','c2','c3','c4','c5','c6','c7','c8'];
+const DEFAULT_CAMERAS=[
   {id:'X100V',name:'X100V',p1:250000,p3:220000,p5:190000,p10:170000,p15:150000,pShift:150000},
   {id:'XS20', name:'X-S20',p1:220000,p3:200000,p5:175000,p10:155000,p15:135000,pShift:130000},
   {id:'XS10', name:'X-S10',p1:200000,p3:180000,p5:160000,p10:140000,p15:120000,pShift:120000},
@@ -717,64 +763,37 @@ const DEFAULT_CAMERAS = [
 ];
 
 // ════ STATE ════
-let cameras = [...DEFAULT_CAMERAS];
-let bookings = [];
-let EL_FEES = {early:50000, late:50000};
-let calYear = new Date().getFullYear();
-let calMonth = new Date().getMonth();
+let cameras=[...DEFAULT_CAMERAS];
+let bookings=[];
+let EL_FEES={early:50000,late:50000};
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
 let fMode='daily', fShift=null, fSelCams=[], fEL={early:false,late:false};
+let avMode='daily', avModeD='daily', avShift=null, avShiftD=null;
 
-// ════ FIRESTORE LISTENERS (realtime sync) ════
+// ════ FIRESTORE LISTENERS ════
 function startListeners(){
-  // Bookings — realtime
-  onSnapshot(collection(db,'bookings'), snap => {
-    bookings = snap.docs.map(d => d.data());
-    if(document.getElementById('page-calendar').classList.contains('active')){
-      renderCalendar();
-    }
+  onSnapshot(collection(db,'bookings'), snap=>{
+    bookings=snap.docs.map(d=>d.data());
+    if(document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
   });
-
-  // Cameras — realtime
-  onSnapshot(collection(db,'cameras'), snap => {
-    if(!snap.empty){
-      cameras = snap.docs.map(d => d.data());
-    }
-    if(document.getElementById('page-calendar').classList.contains('active')){
-      renderCalendar();
-    }
+  onSnapshot(collection(db,'cameras'), snap=>{
+    if(!snap.empty) cameras=snap.docs.map(d=>d.data());
+    if(document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
   });
-
-  // Settings — realtime
-  onSnapshot(collection(db,'settings'), snap => {
-    snap.docs.forEach(d => {
-      const s = d.data();
-      if(d.id === 'fees'){
-        EL_FEES.early = s.early || 50000;
-        EL_FEES.late  = s.late  || 50000;
-        updateELFeeLabels();
-      }
+  onSnapshot(collection(db,'settings'), snap=>{
+    snap.docs.forEach(d=>{
+      if(d.id==='fees'){EL_FEES.early=d.data().early||50000;EL_FEES.late=d.data().late||50000;updateELFeeLabels();}
     });
   });
 }
 
-// ════ SEED DEFAULT DATA ════
 async function seedIfEmpty(){
-  const camSnap = await getDocs(collection(db,'cameras'));
-  if(camSnap.empty){
-    const batch = writeBatch(db);
-    DEFAULT_CAMERAS.forEach(c => {
-      batch.set(doc(db,'cameras',c.id), c);
-    });
-    await batch.commit();
-  }
-  const settSnap = await getDoc(doc(db,'settings','fees'));
-  if(!settSnap.exists()){
-    await setDoc(doc(db,'settings','fees'), {early:50000, late:50000});
-  }
-  const pwSnap = await getDoc(doc(db,'settings','auth'));
-  if(!pwSnap.exists()){
-    await setDoc(doc(db,'settings','auth'), {password:'hana2024'});
-  }
+  const cs=await getDocs(collection(db,'cameras'));
+  if(cs.empty){const b=writeBatch(db);DEFAULT_CAMERAS.forEach(c=>b.set(doc(db,'cameras',c.id),c));await b.commit();}
+  const fs=await getDoc(doc(db,'settings','fees'));
+  if(!fs.exists()) await setDoc(doc(db,'settings','fees'),{early:50000,late:50000});
+  const ps=await getDoc(doc(db,'settings','auth'));
+  if(!ps.exists()) await setDoc(doc(db,'settings','auth'),{password:'hana2024'});
 }
 
 // ════ UTILS ════
@@ -782,66 +801,53 @@ function fmtD(ds){if(!ds)return'';const[y,m,d]=ds.split('-');return`${d}/${m}/${
 function fmtVND(n){return(Math.round(n)||0).toLocaleString('vi-VN')+'đ';}
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
-function camIdx(id){return cameras.findIndex(c=>c.id===id);}
-function camColor(id){const i=camIdx(id);return i>=0?CAM_COLORS[i%CAM_COLORS.length]:'c1';}
-function getTierKey(days){if(days>=15)return'p15';if(days>=10)return'p10';if(days>=5)return'p5';if(days>=3)return'p3';return'p1';}
-function getTierLabel(days){return{p1:'1 ngày',p3:'3+ ngày',p5:'5+ ngày',p10:'10+ ngày',p15:'15+ ngày'}[getTierKey(days)]||'';}
-function shiftLbl(s){return s==='morning-afternoon'?'Ca sáng chiều':s==='afternoon-evening'?'Ca chiều tối':'';}
+function camColor(id){const i=cameras.findIndex(c=>c.id===id);return i>=0?CAM_COLORS[i%8]:'c1';}
+function getTierKey(d){if(d>=15)return'p15';if(d>=10)return'p10';if(d>=5)return'p5';if(d>=3)return'p3';return'p1';}
+function getTierLabel(d){return{p1:'1 ngày',p3:'3+ ngày',p5:'5+ ngày',p10:'10+ ngày',p15:'15+ ngày'}[getTierKey(d)]||'';}
+function shiftLbl(s){return s==='morning-afternoon'?'Sáng–Chiều (08–15h)':s==='afternoon-evening'?'Chiều–Tối (16–23h)':'';}
+function shiftConflict(bShift, checkShift){
+  // Check if two shifts overlap
+  if(!bShift||!checkShift) return true; // daily booking conflicts with any shift
+  return bShift===checkShift; // same shift conflicts
+}
 
 // ════ PAGES ════
-function showPage(p,el){
+window.showPage=function(p,el){
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   if(el)el.classList.add('active');
   if(p==='calendar')renderCalendar();
   if(p==='mgmt')renderMgmt();
-}
-window.showPage = showPage;
+};
 
 // ════ CALENDAR ════
-function changeMonth(d){
-  calMonth+=d;
-  if(calMonth>11){calMonth=0;calYear++;}
-  if(calMonth<0){calMonth=11;calYear--;}
-  renderCalendar();
-}
-window.changeMonth = changeMonth;
+window.changeMonth=function(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();};
 
 function getWeeks(){
   const first=new Date(calYear,calMonth,1),last=new Date(calYear,calMonth+1,0);
   const weeks=[],cur=new Date(first);
   const dow=cur.getDay();cur.setDate(cur.getDate()-(dow===0?6:dow-1));
-  while(cur<=last){
-    const w=[];for(let i=0;i<7;i++){w.push(new Date(cur));cur.setDate(cur.getDate()+1);}weeks.push(w);
-  }
+  while(cur<=last){const w=[];for(let i=0;i<7;i++){w.push(new Date(cur));cur.setDate(cur.getDate()+1);}weeks.push(w);}
   return weeks;
 }
-
-function getBksForDate(ds){return bookings.filter(b=>ds>=b.start&&ds<=b.end);}
 
 function renderCalendar(){
   document.getElementById('cal-title').textContent=MONTHS_VI[calMonth]+' '+calYear;
   const today=new Date().toISOString().split('T')[0];
-  const weeks=getWeeks();
   let html='';
-  weeks.forEach(week=>{
+  getWeeks().forEach(week=>{
     html+='<div class="cal-week">';
     week.forEach((date,di)=>{
       const ds=date.toISOString().split('T')[0];
-      const inM=date.getMonth()===calMonth;
-      const isT=ds===today, isW=di>=5;
+      const inM=date.getMonth()===calMonth,isT=ds===today,isW=di>=5;
       let cls='cal-day';
-      if(!inM)cls+=' other-month';
-      if(isT)cls+=' is-today';
-      if(isW)cls+=' is-weekend';
-      html+=`<div class="${cls}">`;
-      html+=`<div class="day-header"><span class="day-num">${date.getDate()}</span></div>`;
-      const bks=getBksForDate(ds);
+      if(!inM)cls+=' other-month';if(isT)cls+=' is-today';if(isW)cls+=' is-weekend';
+      html+=`<div class="${cls}"><div class="day-header"><span class="day-num">${date.getDate()}</span></div>`;
+      const bks=bookings.filter(b=>ds>=b.start&&ds<=b.end);
       bks.forEach(b=>{
         const cc=camColor(b.cam);
-        const hasNote=!!(b.note&&b.note.trim());
-        const isBlocked=!!b.blocked;
+        const hasNote=!!(b.note&&b.note.trim()),isBlocked=!!b.blocked;
         let pillCls=`bpill cc-${CAM_COLORS.indexOf(cc)} `;
         if(isBlocked)pillCls='bpill mode-blocked';
         else if(b.mode==='shift')pillCls+=b.shift==='morning-afternoon'?'mode-shift-mc':'mode-shift-ae';
@@ -849,29 +855,26 @@ function renderCalendar(){
         const camObj=cameras.find(c=>c.id===b.cam);
         const camName=camObj?camObj.name:(b.camName||b.cam);
         let lbl='';
-        if(isBlocked){
-          const bt=b.name.includes('Lấy sớm')?'Lấy sớm':'Trả muộn';
-          lbl=bt+' · '+camName+(b.shift?' · '+shiftLbl(b.shift):'');
-        } else if(b.mode==='shift') lbl=shiftLbl(b.shift)+' · '+b.name+' · '+camName;
+        if(isBlocked){const bt=b.name.includes('Lấy sớm')?'Lấy sớm':'Trả muộn';lbl=bt+' · '+camName+(b.shift?' · '+shiftLbl(b.shift):'');}
+        else if(b.mode==='shift')lbl=shiftLbl(b.shift)+' · '+b.name+' · '+camName;
         else lbl=b.name+' · '+camName;
         const refund=(b.depositAmt||0)-(b.price||0);
-        let tipHtml=`<div class="tip-h">${esc(b.name)} · ${esc(camName)}</div>`;
+        let tip=`<div class="tip-h">${esc(b.name)} · ${esc(camName)}</div>`;
         if(!isBlocked){
-          tipHtml+=`<div class="tip-r"><span class="tip-l">Loại thuê</span><span class="tip-v">${b.mode==='shift'?shiftLbl(b.shift):'Theo ngày'}</span></div>`;
-          if(b.mode!=='shift'){
-            tipHtml+=`<div class="tip-r"><span class="tip-l">Thời gian</span><span class="tip-v">${fmtD(b.start)}${b.start!==b.end?' → '+fmtD(b.end):''}</span></div>`;
-            tipHtml+=`<div class="tip-r"><span class="tip-l">Số ngày</span><span class="tip-v">${b.days||1} ngày</span></div>`;
-          }
-          tipHtml+=`<div class="tip-r"><span class="tip-l">SĐT</span><span class="tip-v">${esc(b.phone||'—')}</span></div>`;
-          tipHtml+=`<div class="tip-r"><span class="tip-l">Đã cọc</span><span class="tip-v">${fmtVND(b.depositAmt||0)}</span></div>`;
-          tipHtml+=`<div class="tip-r"><span class="tip-l">Phải trả</span><span class="tip-v">${fmtVND(b.price||0)}</span></div>`;
-          tipHtml+=`<div class="tip-refund ${refund>=0?'pos':'neg'}">${refund>=0?'Hoàn lại':'Còn nợ'}: ${fmtVND(Math.abs(refund))}</div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Ca/Loại</span><span class="tip-v">${b.mode==='shift'?shiftLbl(b.shift):'Theo ngày'}</span></div>`;
+          if(b.mode!=='shift'){tip+=`<div class="tip-r"><span class="tip-l">Thời gian</span><span class="tip-v">${fmtD(b.start)}${b.start!==b.end?' → '+fmtD(b.end):''}</span></div>`;tip+=`<div class="tip-r"><span class="tip-l">Số ngày</span><span class="tip-v">${b.days||1} ngày</span></div>`;}
+          tip+=`<div class="tip-r"><span class="tip-l">SĐT</span><span class="tip-v">${esc(b.phone||'—')}</span></div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Đã cọc</span><span class="tip-v">${fmtVND(b.depositAmt||0)}</span></div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Phải trả</span><span class="tip-v">${fmtVND(b.price||0)}</span></div>`;
+          tip+=`<div class="tip-refund ${refund>=0?'pos':'neg'}">${refund>=0?'Hoàn lại':'Còn nợ'}: ${fmtVND(Math.abs(refund))}</div>`;
+          tip+=`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)"><button onclick="deleteBookingId('${b.id}')" style="background:var(--red-bg);border:1px solid rgba(192,57,43,0.3);color:var(--red);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;width:100%;font-family:Mulish,sans-serif">Xóa lịch này</button></div>`;
         } else {
-          tipHtml+=`<div class="tip-r"><span class="tip-l">Trạng thái</span><span class="tip-v" style="color:var(--red)">Khóa lịch</span></div>`;
-          tipHtml+=`<div class="tip-r"><span class="tip-l">Ca</span><span class="tip-v">${shiftLbl(b.shift)}</span></div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Trạng thái</span><span class="tip-v" style="color:var(--red)">Khóa lịch</span></div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Ca</span><span class="tip-v">${shiftLbl(b.shift)}</span></div>`;
+          tip+=`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)"><button onclick="deleteBookingId('${b.id}')" style="background:var(--red-bg);border:1px solid rgba(192,57,43,0.3);color:var(--red);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;width:100%;font-family:Mulish,sans-serif">Xóa</button></div>`;
         }
-        if(hasNote)tipHtml+=`<div class="tip-note">⚠ ${esc(b.note)}</div>`;
-        html+=`<div class="tip-host"><div class="${pillCls}"><span class="bpill-label">${esc(lbl)}</span>${hasNote&&!isBlocked?'<span class="note-dot"></span>':''}</div><div class="tip-box">${tipHtml}</div></div>`;
+        if(hasNote)tip+=`<div class="tip-note">⚠ ${esc(b.note)}</div>`;
+        html+=`<div class="tip-host"><div class="${pillCls}" style="pointer-events:auto"><span class="bpill-label">${esc(lbl)}</span>${hasNote&&!isBlocked?'<span class="note-dot"></span>':''}</div><div class="tip-box" style="pointer-events:auto">${tip}</div></div>`;
       });
       html+='</div>';
     });
@@ -880,6 +883,12 @@ function renderCalendar(){
   document.getElementById('cal-weeks').innerHTML=html;
   updateStats();
 }
+
+window.deleteBookingId=async function(id){
+  if(!confirm('Xác nhận xóa lịch này?'))return;
+  await deleteDoc(doc(db,'bookings',id));
+  toast('Đã xóa lịch');
+};
 
 function updateStats(){
   const today=new Date().toISOString().split('T')[0];
@@ -896,46 +905,110 @@ function updateStats(){
   document.getElementById('s-deliver-chips').innerHTML=delivBks.length?[...new Set(delivBks.map(b=>b.cam))].map(id=>{const c=cameras.find(x=>x.id===id);return`<span class="chip-tag" style="background:var(--gold-bg);color:var(--gold)">${c?c.name:id}</span>`;}).join(''):`<span style="font-size:10px;color:var(--ink4)">Không có</span>`;
 }
 
-// ════ AVAIL CHECK ════
-function _doAvail(s,e,resEl){
-  if(!s||!e){resEl.innerHTML='';return;}
-  const days=Math.round((new Date(e)-new Date(s))/86400000)+1;
-  if(days<=0){resEl.innerHTML=`<div style="font-size:12px;color:var(--red)">Ngày không hợp lệ</div>`;return;}
+// ════ AVAILABILITY CHECK ════
+function camAvailable(camId, startDs, endDs, shiftType){
+  return !bookings.some(b=>{
+    if(b.blocked||b.cam!==camId)return false;
+    // date ranges must overlap
+    if(endDs<b.start||startDs>b.end)return false;
+    // if checking shift mode — only conflict if same shift or one is daily
+    if(shiftType&&b.mode==='shift') return b.shift===shiftType;
+    return true; // daily vs daily or daily vs shift = always conflict
+  });
+}
+
+function buildAvailHtml(cameras, startDs, endDs, days, shiftType){
   const key=getTierKey(days);
-  let html=`<div style="font-size:11px;color:var(--ink3);margin-bottom:8px;font-weight:600">${days} ngày · mức ${getTierLabel(days)}</div>`;
+  let html=`<div style="font-size:11px;color:var(--ink3);margin-bottom:8px;font-weight:600">${shiftType?shiftLbl(shiftType):days+' ngày · mức '+getTierLabel(days)}</div>`;
   cameras.forEach(c=>{
-    const busy=bookings.some(b=>!b.blocked&&b.cam===c.id&&!(e<b.start||s>b.end));
-    const ppd=c[key]||c.p1||0;
-    if(!busy){
-      html+=`<div class="sb-cam-row available"><div class="sb-cam-name">${c.name}</div><div class="sb-cam-price">${fmtVND(ppd)}/ngày</div><div class="sb-cam-total">Tổng: ${fmtVND(ppd*days)}</div></div>`;
-    } else {
+    const avail=camAvailable(c.id,startDs,endDs,shiftType);
+    const ppd=shiftType?(c.pShift||150000):(c[key]||c.p1||0);
+    if(avail){
+      html+=`<div class="sb-cam-row available"><div class="sb-cam-name">${c.name}</div><div class="sb-cam-price">${fmtVND(ppd)}${shiftType?'/ca':'/ngày'}</div><div class="sb-cam-total">Tổng: ${fmtVND(ppd*days)}</div></div>`;
+    }else{
       html+=`<div class="sb-cam-row busy"><div class="sb-cam-name">${c.name}</div><div class="sb-cam-busy">Đã được đặt</div></div>`;
     }
   });
-  resEl.innerHTML=html;
+  return html;
 }
-function runAvail(){
-  _doAvail(document.getElementById('sb-start').value, document.getElementById('sb-end').value, document.getElementById('sb-result'));
-}
-window.runAvail = runAvail;
+
+window.runAvail=function(){
+  const res=document.getElementById('sb-result');
+  if(avModeD==='shift'){
+    const d=document.getElementById('sb-shift-date-d').value;
+    if(!d||!avShiftD){res.innerHTML='<div style="font-size:12px;color:var(--ink4)">Chọn ngày và ca</div>';return;}
+    res.innerHTML=buildAvailHtml(cameras,d,d,1,avShiftD);
+  }else{
+    const s=document.getElementById('sb-start').value,e=document.getElementById('sb-end').value;
+    if(!s||!e){res.innerHTML='';return;}
+    const days=Math.round((new Date(e)-new Date(s))/86400000)+1;
+    if(days<=0){res.innerHTML=`<div style="font-size:12px;color:var(--red)">Ngày không hợp lệ</div>`;return;}
+    res.innerHTML=buildAvailHtml(cameras,s,e,days,null);
+  }
+};
+
+window.runAvailMobile=function(){
+  syncAvailDates('m');
+  const res=document.getElementById('sb-result-m');
+  if(avMode==='shift'){
+    const d=document.getElementById('sb-shift-date').value;
+    if(!d||!avShift){res.innerHTML='<div style="font-size:12px;color:var(--ink4)">Chọn ngày và ca</div>';return;}
+    res.innerHTML=buildAvailHtml(cameras,d,d,1,avShift);
+    document.getElementById('sb-result').innerHTML=res.innerHTML;
+  }else{
+    const s=document.getElementById('sb-start-m').value,e=document.getElementById('sb-end-m').value;
+    if(!s||!e){res.innerHTML='';return;}
+    const days=Math.round((new Date(e)-new Date(s))/86400000)+1;
+    if(days<=0){res.innerHTML=`<div style="font-size:12px;color:var(--red)">Ngày không hợp lệ</div>`;return;}
+    res.innerHTML=buildAvailHtml(cameras,s,e,days,null);
+    document.getElementById('sb-result').innerHTML=res.innerHTML;
+  }
+};
+
+window.setAvailMode=function(m){
+  avMode=m;avShift=null;
+  document.getElementById('av-mode-daily').classList.toggle('on',m==='daily');
+  document.getElementById('av-mode-shift').classList.toggle('on',m==='shift');
+  document.getElementById('av-daily-sec').style.display=m==='daily'?'block':'none';
+  document.getElementById('av-shift-sec').style.display=m==='shift'?'block':'none';
+  document.querySelectorAll('#av-sh-mc,#av-sh-ae').forEach(el=>el.classList.remove('on'));
+};
+window.setAvailModeD=function(m){
+  avModeD=m;avShiftD=null;
+  document.getElementById('av-mode-daily-d').classList.toggle('on',m==='daily');
+  document.getElementById('av-mode-shift-d').classList.toggle('on',m==='shift');
+  document.getElementById('av-daily-sec-d').style.display=m==='daily'?'block':'none';
+  document.getElementById('av-shift-sec-d').style.display=m==='shift'?'block':'none';
+  document.querySelectorAll('#av-sh-mc-d,#av-sh-ae-d').forEach(el=>el.classList.remove('on'));
+};
+window.selectAvailShift=function(s){
+  avShift=s;
+  document.getElementById('av-sh-mc').classList.toggle('on',s==='morning-afternoon');
+  document.getElementById('av-sh-ae').classList.toggle('on',s==='afternoon-evening');
+};
+window.selectAvailShiftD=function(s){
+  avShiftD=s;
+  document.getElementById('av-sh-mc-d').classList.toggle('on',s==='morning-afternoon');
+  document.getElementById('av-sh-ae-d').classList.toggle('on',s==='afternoon-evening');
+};
 
 // ════ BOOKING FORM ════
-window.openModal = function(){resetForm();buildCamGrid();updateELFeeLabels();document.getElementById('overlay').classList.add('open');};
-window.closeModal = function(){document.getElementById('overlay').classList.remove('open');};
+window.openModal=function(){resetForm();buildCamGrid();updateELFeeLabels();document.getElementById('overlay').classList.add('open');};
+window.closeModal=function(){document.getElementById('overlay').classList.remove('open');};
 
 function resetForm(){
   fMode='daily';fShift=null;fSelCams=[];fEL={early:false,late:false};
   ['f-name','f-phone','f-start','f-end','f-sdate','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('f-dep').value='';document.getElementById('f-del').value='';
   document.getElementById('f-dep-amt').value=100000;document.getElementById('f-disc').value=0;
-  setMode('daily');
+  window.setMode('daily');
   ['sh-mc','sh-ae'].forEach(id=>document.getElementById(id).classList.remove('on'));
   ['el-early','el-late'].forEach(id=>document.getElementById(id).classList.remove('on'));
   ['daily-preview','shift-preview','final-box'].forEach(id=>document.getElementById(id).style.display='none');
   updateELDesc();
 }
 
-window.setMode = function(m){
+window.setMode=function(m){
   fMode=m;fShift=null;
   document.getElementById('m-daily').classList.toggle('on',m==='daily');
   document.getElementById('m-shift').classList.toggle('on',m==='shift');
@@ -945,7 +1018,7 @@ window.setMode = function(m){
   updateELDesc();
 };
 
-window.setShift = function(s){
+window.setShift=function(s){
   fShift=s;
   document.getElementById('sh-mc').classList.toggle('on',s==='morning-afternoon');
   document.getElementById('sh-ae').classList.toggle('on',s==='afternoon-evening');
@@ -959,34 +1032,28 @@ function buildCamGrid(){
     </div>`).join('');
 }
 
-window.toggleCam = function(id,el){
+window.toggleCam=function(id,el){
   const i=fSelCams.indexOf(id);
   if(i>-1){fSelCams.splice(i,1);el.classList.remove('on');}else{fSelCams.push(id);el.classList.add('on');}
   updatePricePreview();updateFinal();
 };
-
-window.toggleEL = function(which){
-  fEL[which]=!fEL[which];
-  document.getElementById('el-'+which).classList.toggle('on',fEL[which]);
-  updateFinal();
+window.toggleEL=function(which){
+  fEL[which]=!fEL[which];document.getElementById('el-'+which).classList.toggle('on',fEL[which]);updateFinal();
 };
-
-window.onDateChange = function(){updatePricePreview();updateFinal();updateELDesc();};
+window.onDateChange=function(){updatePricePreview();updateFinal();updateELDesc();};
 
 function updateELDesc(){
-  const baseDate=fMode==='daily'?document.getElementById('f-start').value:document.getElementById('f-sdate').value;
-  const endDate=fMode==='daily'?document.getElementById('f-end').value:document.getElementById('f-sdate').value;
-  if(baseDate){const prev=new Date(baseDate);prev.setDate(prev.getDate()-1);document.getElementById('el-early-d').textContent='Ca chiều tối '+fmtD(prev.toISOString().split('T')[0]);}
-  else document.getElementById('el-early-d').textContent='Ca sát nhất hôm trước';
-  if(endDate){const next=new Date(endDate);next.setDate(next.getDate()+1);document.getElementById('el-late-d').textContent='Ca sáng chiều '+fmtD(next.toISOString().split('T')[0]);}
-  else document.getElementById('el-late-d').textContent='Ca sát nhất hôm sau';
+  const base=fMode==='daily'?document.getElementById('f-start').value:document.getElementById('f-sdate').value;
+  const end=fMode==='daily'?document.getElementById('f-end').value:document.getElementById('f-sdate').value;
+  // Early: if booking is morning-afternoon, early pickup = afternoon-evening day before
+  // If booking is afternoon-evening, early = morning-afternoon day before (but same day not useful, so afternoon-evening prev day)
+  if(base){const prev=new Date(base);prev.setDate(prev.getDate()-1);document.getElementById('el-early-d').textContent='Ca Chiều–Tối '+fmtD(prev.toISOString().split('T')[0]);}
+  else document.getElementById('el-early-d').textContent='Ca chiều-tối ngày trước';
+  if(end){const next=new Date(end);next.setDate(next.getDate()+1);document.getElementById('el-late-d').textContent='Ca Sáng–Chiều '+fmtD(next.toISOString().split('T')[0]);}
+  else document.getElementById('el-late-d').textContent='Ca sáng-chiều ngày sau';
 }
 
-function getDays(){
-  const s=document.getElementById('f-start').value,e=document.getElementById('f-end').value;
-  if(!s||!e)return 0;const d=Math.round((new Date(e)-new Date(s))/86400000)+1;return d>0?d:0;
-}
-
+function getDays(){const s=document.getElementById('f-start').value,e=document.getElementById('f-end').value;if(!s||!e)return 0;const d=Math.round((new Date(e)-new Date(s))/86400000)+1;return d>0?d:0;}
 function updatePricePreview(){if(fMode==='daily')updateDailyPreview();else updateShiftPreview();}
 
 function updateDailyPreview(){
@@ -1013,14 +1080,8 @@ function updateShiftPreview(){
 function updateFinal(){
   if(!fSelCams.length){document.getElementById('final-box').style.display='none';return;}
   let sub=0;
-  if(fMode==='daily'){
-    const days=getDays();if(!days){document.getElementById('final-box').style.display='none';return;}
-    const key=getTierKey(days);
-    fSelCams.forEach(id=>{const c=cameras.find(x=>x.id===id);if(c)sub+=(c[key]||c.p1||0)*days;});
-  } else {
-    if(!fShift){document.getElementById('final-box').style.display='none';return;}
-    fSelCams.forEach(id=>{const c=cameras.find(x=>x.id===id);if(c)sub+=c.pShift||150000;});
-  }
+  if(fMode==='daily'){const days=getDays();if(!days){document.getElementById('final-box').style.display='none';return;}const key=getTierKey(days);fSelCams.forEach(id=>{const c=cameras.find(x=>x.id===id);if(c)sub+=(c[key]||c.p1||0)*days;});}
+  else{if(!fShift){document.getElementById('final-box').style.display='none';return;}fSelCams.forEach(id=>{const c=cameras.find(x=>x.id===id);if(c)sub+=c.pShift||150000;});}
   const elFee=(fEL.early?EL_FEES.early:0)+(fEL.late?EL_FEES.late:0);
   const disc=parseFloat(document.getElementById('f-disc').value)||0;
   const total=Math.round(sub*(1-disc/100))+elFee;
@@ -1034,9 +1095,9 @@ function updateFinal(){
   document.getElementById('fb-total').textContent=fmtVND(total);
   document.getElementById('final-box').style.display='block';
 }
-window.updateFinal = updateFinal;
+window.updateFinal=updateFinal;
 
-window.submitBooking = async function(){
+window.submitBooking=async function(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){toast('Vui lòng nhập tên khách hàng');return;}
   if(!fSelCams.length){toast('Vui lòng chọn máy ảnh');return;}
@@ -1045,7 +1106,7 @@ window.submitBooking = async function(){
     start=document.getElementById('f-start').value;end=document.getElementById('f-end').value;
     if(!start||!end){toast('Vui lòng chọn ngày bắt đầu và kết thúc');return;}
     if(new Date(end)<new Date(start)){toast('Ngày kết thúc phải sau ngày bắt đầu');return;}
-  } else {
+  }else{
     start=end=document.getElementById('f-sdate').value;
     if(!start){toast('Vui lòng chọn ngày thuê');return;}
     if(!fShift){toast('Vui lòng chọn ca thuê');return;}
@@ -1060,62 +1121,30 @@ window.submitBooking = async function(){
     const c=cameras.find(x=>x.id===id);if(!c)return;
     const base=(c[key]||c.p1||0)*(fMode==='daily'?days:1);
     const price=Math.round(base*(1-disc/100))+elFee;
-    const bkId=Date.now()+'-'+id+'-'+Math.random().toString(36).slice(2,7);
+    const bkId=Date.now()+'-'+id+'-'+Math.random().toString(36).slice(2,6);
     const bk={id:bkId,name,phone:document.getElementById('f-phone').value.trim(),note:document.getElementById('f-note').value.trim(),cam:id,camName:c.name,mode:fMode,shift:fShift,start,end,days:fMode==='daily'?days:1,tierKey:key,pricePerUnit:c[key]||c.p1||0,subTotal:base,discount:disc,elFee,price,depositAmt:depAmt,deposit:document.getElementById('f-dep').value,delivery:document.getElementById('f-del').value,earlyLate:{...fEL},blocked:false,createdAt:new Date().toISOString()};
     batch.set(doc(db,'bookings',bkId),bk);
-    if(fEL.early){
-      const prev=new Date(start);prev.setDate(prev.getDate()-1);const pds=prev.toISOString().split('T')[0];
-      const eid=bkId+'-E';
-      batch.set(doc(db,'bookings',eid),{id:eid,name:name+' (Lấy sớm)',cam:id,camName:c.name,mode:'shift',shift:'afternoon-evening',start:pds,end:pds,days:1,price:0,depositAmt:0,discount:0,elFee:0,subTotal:0,pricePerUnit:0,tierKey:'',blocked:true,createdAt:bk.createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false}});
-    }
-    if(fEL.late){
-      const nxt=new Date(end);nxt.setDate(nxt.getDate()+1);const nds=nxt.toISOString().split('T')[0];
-      const lid=bkId+'-L';
-      batch.set(doc(db,'bookings',lid),{id:lid,name:name+' (Trả muộn)',cam:id,camName:c.name,mode:'shift',shift:'morning-afternoon',start:nds,end:nds,days:1,price:0,depositAmt:0,discount:0,elFee:0,subTotal:0,pricePerUnit:0,tierKey:'',blocked:true,createdAt:bk.createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false}});
-    }
+    if(fEL.early){const prev=new Date(start);prev.setDate(prev.getDate()-1);const pds=prev.toISOString().split('T')[0];const eid=bkId+'-E';batch.set(doc(db,'bookings',eid),{id:eid,name:name+' (Lấy sớm)',cam:id,camName:c.name,mode:'shift',shift:'afternoon-evening',start:pds,end:pds,days:1,price:0,depositAmt:0,discount:0,elFee:0,subTotal:0,pricePerUnit:0,tierKey:'',blocked:true,createdAt:bk.createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false}});}
+    if(fEL.late){const nxt=new Date(end);nxt.setDate(nxt.getDate()+1);const nds=nxt.toISOString().split('T')[0];const lid=bkId+'-L';batch.set(doc(db,'bookings',lid),{id:lid,name:name+' (Trả muộn)',cam:id,camName:c.name,mode:'shift',shift:'morning-afternoon',start:nds,end:nds,days:1,price:0,depositAmt:0,discount:0,elFee:0,subTotal:0,pricePerUnit:0,tierKey:'',blocked:true,createdAt:bk.createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false}});}
   });
-  try{
-    await batch.commit();
-    toast('Đặt lịch thành công!');
-    window.closeModal();
-  } catch(e){toast('Lỗi: '+e.message);}
+  try{await batch.commit();toast('Đặt lịch thành công!');window.closeModal();}catch(e){toast('Lỗi: '+e.message);}
 };
 
 // ════ MANAGEMENT ════
-window.checkPw = async function(){
+window.checkPw=async function(){
   const pw=document.getElementById('mgmt-pw').value;
-  try{
-    const snap=await getDoc(doc(db,'settings','auth'));
-    if(snap.exists()&&snap.data().password===pw){
-      document.getElementById('mgmt-lock').style.display='none';
-      document.getElementById('mgmt-body').style.display='block';
-      renderMgmt();
-    } else {
-      document.getElementById('pw-err').style.display='block';
-    }
-  } catch {document.getElementById('pw-err').style.display='block';}
+  try{const snap=await getDoc(doc(db,'settings','auth'));if(snap.exists()&&snap.data().password===pw){document.getElementById('mgmt-lock').style.display='none';document.getElementById('mgmt-body').style.display='block';renderMgmt();}else document.getElementById('pw-err').style.display='block';}
+  catch{document.getElementById('pw-err').style.display='block';}
 };
-
-window.lockMgmt = function(){
-  document.getElementById('mgmt-lock').style.display='block';
-  document.getElementById('mgmt-body').style.display='none';
-  document.getElementById('mgmt-pw').value='';
-  document.getElementById('pw-err').style.display='none';
-};
-
-window.switchTab = function(p,el){
+window.lockMgmt=function(){document.getElementById('mgmt-lock').style.display='block';document.getElementById('mgmt-body').style.display='none';document.getElementById('mgmt-pw').value='';document.getElementById('pw-err').style.display='none';};
+window.switchTab=function(p,el){
   document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.mpanel').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');document.getElementById('mp-'+p).classList.add('on');
-  if(p==='bookings')renderBkTable();
-  if(p==='revenue')renderRevenue();
-  if(p==='cameras')renderCamList();
-  if(p==='settings')renderSettings();
+  if(p==='bookings')renderBkTable();if(p==='revenue')renderRevenue();if(p==='cameras')renderCamList();if(p==='settings')renderSettings();
 };
-
 function renderMgmt(){renderCamList();}
 
-// Camera list
 function renderCamList(){
   const tiers=['p1','p3','p5','p10','p15','pShift'];
   const tLabels={p1:'1 ngày',p3:'3+ ngày',p5:'5+ ngày',p10:'10+ ngày',p15:'15+ ngày',pShift:'Giá ca'};
@@ -1123,8 +1152,7 @@ function renderCamList(){
     <div style="border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
         <div style="flex:1"><div class="flbl" style="margin-bottom:4px">Tên mã máy</div>
-          <input type="text" value="${esc(c.name)}" id="cn-${idx}" onchange="saveCamName(${idx})">
-        </div>
+          <input type="text" value="${esc(c.name)}" id="cn-${idx}" onchange="saveCamName(${idx})"></div>
         <button class="btn-sm red" onclick="removeCam(${idx})">Xóa</button>
       </div>
       <table class="pt"><thead><tr><th>Mức thuê</th><th>Đơn giá / ngày (đ)</th></tr></thead>
@@ -1132,62 +1160,31 @@ function renderCamList(){
       </table>
     </div>`).join('');
 }
+window.saveCamName=async function(idx){const v=document.getElementById('cn-'+idx).value.trim();if(!v){toast('Tên không được để trống');return;}const dup=cameras.some((c,i)=>i!==idx&&c.name.toLowerCase()===v.toLowerCase());if(dup){toast('Trùng mã máy: '+v);document.getElementById('cn-'+idx).value=cameras[idx].name;return;}cameras[idx].name=v;await setDoc(doc(db,'cameras',cameras[idx].id),cameras[idx]);toast('Đã cập nhật');};
+window.saveCamPrice=async function(idx,tier,val){cameras[idx][tier]=parseInt(val)||0;await setDoc(doc(db,'cameras',cameras[idx].id),cameras[idx]);};
+window.addCamera=async function(){const newId='CAM'+Date.now();const nc={id:newId,name:'Máy mới',p1:200000,p3:180000,p5:160000,p10:140000,p15:120000,pShift:130000};await setDoc(doc(db,'cameras',newId),nc);toast('Đã thêm máy mới');};
+window.removeCam=async function(idx){if(!confirm('Xóa máy '+cameras[idx].name+'?'))return;await deleteDoc(doc(db,'cameras',cameras[idx].id));toast('Đã xóa');};
 
-window.saveCamName = async function(idx){
-  const v=document.getElementById('cn-'+idx).value.trim();
-  if(!v){toast('Tên không được để trống');return;}
-  const dup=cameras.some((c,i)=>i!==idx&&c.name.toLowerCase()===v.toLowerCase());
-  if(dup){toast('Trùng mã máy: '+v);document.getElementById('cn-'+idx).value=cameras[idx].name;return;}
-  cameras[idx].name=v;
-  await setDoc(doc(db,'cameras',cameras[idx].id),cameras[idx]);
-  toast('Đã cập nhật');
-};
-
-window.saveCamPrice = async function(idx,tier,val){
-  cameras[idx][tier]=parseInt(val)||0;
-  await setDoc(doc(db,'cameras',cameras[idx].id),cameras[idx]);
-};
-
-window.addCamera = async function(){
-  const newId='CAM'+Date.now();
-  const newCam={id:newId,name:'Máy mới',p1:200000,p3:180000,p5:160000,p10:140000,p15:120000,pShift:130000};
-  await setDoc(doc(db,'cameras',newId),newCam);
-  toast('Đã thêm máy mới');
-};
-
-window.removeCam = async function(idx){
-  if(!confirm('Xóa máy '+cameras[idx].name+'?'))return;
-  await deleteDoc(doc(db,'cameras',cameras[idx].id));
-  toast('Đã xóa');
-};
-
-// Booking table
 function renderBkTable(){
-  const month=document.getElementById('f-month').value;
-  const from=document.getElementById('f-from').value;
-  const to=document.getElementById('f-to').value;
+  const month=document.getElementById('f-month').value,from=document.getElementById('f-from').value,to=document.getElementById('f-to').value;
   let list=bookings.filter(b=>!b.blocked);
   if(month){const[y,m]=month.split('-');list=list.filter(b=>{const s=new Date(b.start);return s.getFullYear()==+y&&s.getMonth()==+m-1;});}
-  if(from)list=list.filter(b=>b.start>=from);
-  if(to)list=list.filter(b=>b.start<=to);
+  if(from)list=list.filter(b=>b.start>=from);if(to)list=list.filter(b=>b.start<=to);
   list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
   const t=document.getElementById('bk-table');
-  t.querySelector('thead').innerHTML=`<tr><th>Khách hàng</th><th>SĐT</th><th>Máy</th><th>Loại</th><th>Bắt đầu</th><th>Kết thúc</th><th>Ngày</th><th>Đơn giá</th><th>Phải trả</th><th>Đã cọc</th><th>Hoàn/Nợ</th><th>CK</th><th>Ghi chú</th></tr>`;
+  t.querySelector('thead').innerHTML=`<tr><th>Khách hàng</th><th>SĐT</th><th>Máy</th><th>Loại</th><th>Bắt đầu</th><th>Kết thúc</th><th>Ngày</th><th>Đơn giá</th><th>Phải trả</th><th>Đã cọc</th><th>Hoàn/Nợ</th><th>CK</th><th>Ghi chú</th><th></th></tr>`;
   t.querySelector('tbody').innerHTML=list.map(b=>{
     const rf=(b.depositAmt||0)-(b.price||0);
-    return`<tr><td style="font-weight:700">${esc(b.name)}</td><td>${esc(b.phone||'—')}</td><td>${esc(b.camName||b.cam)}</td><td>${b.mode==='shift'?shiftLbl(b.shift):'Theo ngày'}</td><td>${fmtD(b.start)}</td><td>${fmtD(b.end)}</td><td>${b.days||1}</td><td>${fmtVND(b.pricePerUnit||0)}</td><td style="font-weight:700">${fmtVND(b.price||0)}</td><td>${fmtVND(b.depositAmt||0)}</td><td style="color:${rf>=0?'var(--green)':'var(--red)'}">${rf>=0?'+':''}${fmtVND(rf)}</td><td>${b.discount?'-'+b.discount+'%':'—'}</td><td style="color:var(--orange)">${esc(b.note||'')}</td></tr>`;
-  }).join('')||`<tr><td colspan="13" style="text-align:center;padding:28px;color:var(--ink4)">Không có dữ liệu</td></tr>`;
+    return`<tr><td style="font-weight:700">${esc(b.name)}</td><td>${esc(b.phone||'—')}</td><td>${esc(b.camName||b.cam)}</td><td>${b.mode==='shift'?shiftLbl(b.shift):'Theo ngày'}</td><td>${fmtD(b.start)}</td><td>${fmtD(b.end)}</td><td>${b.days||1}</td><td>${fmtVND(b.pricePerUnit||0)}</td><td style="font-weight:700">${fmtVND(b.price||0)}</td><td>${fmtVND(b.depositAmt||0)}</td><td style="color:${rf>=0?'var(--green)':'var(--red)'}">${rf>=0?'+':''}${fmtVND(rf)}</td><td>${b.discount?'-'+b.discount+'%':'—'}</td><td style="color:var(--orange)">${esc(b.note||'')}</td><td><button onclick="deleteBookingId('${b.id}')" style="background:none;border:1px solid var(--red);color:var(--red);border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:Mulish,sans-serif;font-weight:700">Xóa</button></td></tr>`;
+  }).join('')||`<tr><td colspan="14" style="text-align:center;padding:28px;color:var(--ink4)">Không có dữ liệu</td></tr>`;
 }
-window.renderBkTable = renderBkTable;
+window.renderBkTable=renderBkTable;
 
-window.exportCSV = function(){
-  const month=document.getElementById('f-month').value;
-  const from=document.getElementById('f-from').value;
-  const to=document.getElementById('f-to').value;
+window.exportCSV=function(){
+  const month=document.getElementById('f-month').value,from=document.getElementById('f-from').value,to=document.getElementById('f-to').value;
   let list=bookings.filter(b=>!b.blocked);
   if(month){const[y,m]=month.split('-');list=list.filter(b=>{const s=new Date(b.start);return s.getFullYear()==+y&&s.getMonth()==+m-1;});}
-  if(from)list=list.filter(b=>b.start>=from);
-  if(to)list=list.filter(b=>b.start<=to);
+  if(from)list=list.filter(b=>b.start>=from);if(to)list=list.filter(b=>b.start<=to);
   const H=['Khách hàng','SĐT','Máy','Loại thuê','Bắt đầu','Kết thúc','Số ngày','Đơn giá','Phải trả','Đã cọc','Hoàn/Nợ','Chiết khấu','Ghi chú'];
   const R=list.map(b=>{const rf=(b.depositAmt||0)-(b.price||0);return[b.name,b.phone||'',b.camName||b.cam,b.mode==='shift'?shiftLbl(b.shift):'Theo ngày',b.start,b.end,b.days||1,b.pricePerUnit||0,b.price||0,b.depositAmt||0,rf,b.discount?'-'+b.discount+'%':'',b.note||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',');});
   const csv='\uFEFF'+[H.join(','),...R].join('\n');
@@ -1195,8 +1192,8 @@ window.exportCSV = function(){
   const a=document.createElement('a');a.href=url;a.download='hana-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(url);
 };
 
-// Revenue
-function renderRevenue(){
+window.renderRevenue=function(){
+  // All months overview
   const byM={};
   bookings.filter(b=>!b.blocked).forEach(b=>{
     const s=new Date(b.start+'T00:00:00'),e=new Date(b.end+'T00:00:00');
@@ -1206,37 +1203,74 @@ function renderRevenue(){
   });
   const keys=Object.keys(byM).sort().reverse();
   document.getElementById('rev-grid').innerHTML=keys.length?keys.map(k=>{const[y,m]=k.split('-');return`<div class="rev-card"><div class="rev-m">Tháng ${m}/${y}</div><div class="rev-v">${fmtVND(Math.round(byM[k].rev))}</div><div class="rev-s">${byM[k].custs.size} khách hàng</div></div>`;}).join(''):`<div style="color:var(--ink4);font-size:13px">Chưa có dữ liệu</div>`;
-}
 
-// Settings
-function renderSettings(){
-  document.getElementById('fee-early').value=EL_FEES.early;
-  document.getElementById('fee-late').value=EL_FEES.late;
-  document.getElementById('fee-saved').style.display='none';
-  ['pw-cur','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('pw-msg').style.display='none';
-}
+  // Selected month detail
+  const selMonth=document.getElementById('rev-month').value;
+  if(!selMonth){document.getElementById('rev-detail').innerHTML='<div style="color:var(--ink4);font-size:12px;margin-bottom:16px">Chọn tháng để xem chi tiết</div>';return;}
+  const[sy,sm]=selMonth.split('-');
+  const y=parseInt(sy),m=parseInt(sm)-1;
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const monthBks=bookings.filter(b=>{if(b.blocked)return false;const s=new Date(b.start);const e=new Date(b.end);return!(new Date(y,m+1,1)<=s||new Date(y,m,1)>e);});
+  const uniqueCusts=new Set(monthBks.map(b=>b.name)).size;
+  let revMonth=0;
+  monthBks.forEach(b=>{
+    const s=new Date(b.start+'T00:00:00'),e=new Date(b.end+'T00:00:00');
+    const totalDays=Math.round((e-s)/86400000)+1;if(totalDays<=0)return;
+    const ppd=(b.price||0)/totalDays;const cur=new Date(s);
+    while(cur<=e){if(cur.getFullYear()===y&&cur.getMonth()===m)revMonth+=ppd;cur.setDate(cur.getDate()+1);}
+  });
+  // Fill rate per camera
+  const camStats=cameras.map(c=>{
+    const daysBusy=new Set();
+    bookings.filter(b=>!b.blocked&&b.cam===c.id).forEach(b=>{
+      const s=new Date(Math.max(new Date(b.start+'T00:00:00'),new Date(y,m,1)));
+      const e=new Date(Math.min(new Date(b.end+'T00:00:00'),new Date(y,m,daysInMonth)));
+      const cur=new Date(s);
+      while(cur<=e){daysBusy.add(cur.toISOString().split('T')[0]);cur.setDate(cur.getDate()+1);}
+    });
+    const pct=Math.round(daysBusy.size/daysInMonth*100);
+    return{name:c.name,days:daysBusy.size,pct};
+  });
 
-window.saveFees = async function(){
-  const early=parseInt(document.getElementById('fee-early').value)||0;
-  const late=parseInt(document.getElementById('fee-late').value)||0;
-  EL_FEES={early,late};
-  await setDoc(doc(db,'settings','fees'),{early,late});
-  updateELFeeLabels();
-  const msg=document.getElementById('fee-saved');msg.style.display='inline';setTimeout(()=>msg.style.display='none',2500);
+  document.getElementById('rev-detail').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="rev-card" style="background:var(--white);border-color:var(--line2)">
+        <div class="rev-m">Tổng khách tháng ${sm}/${sy}</div>
+        <div class="rev-v">${uniqueCusts}</div><div class="rev-s">khách hàng</div>
+      </div>
+      <div class="rev-card" style="background:var(--white);border-color:var(--line2)">
+        <div class="rev-m">Doanh thu tháng ${sm}/${sy}</div>
+        <div class="rev-v">${fmtVND(Math.round(revMonth))}</div><div class="rev-s">ước tính</div>
+      </div>
+    </div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ink4);margin-bottom:8px">Tỷ lệ lấp đầy (${daysInMonth} ngày)</div>
+    ${camStats.map(c=>`
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+          <span style="font-weight:700">${c.name}</span>
+          <span style="color:var(--ink3)">${c.days} ngày · <strong style="color:${c.pct>=70?'var(--green)':c.pct>=40?'var(--gold)':'var(--red)'}">${c.pct}%</strong></span>
+        </div>
+        <div style="background:var(--bg2);border-radius:4px;height:8px;overflow:hidden">
+          <div style="background:${c.pct>=70?'var(--green)':c.pct>=40?'var(--gold)':'var(--red)'};height:100%;width:${c.pct}%;border-radius:4px;transition:width 0.4s"></div>
+        </div>
+      </div>`).join('')}
+    <div style="height:12px"></div>
+  `;
 };
 
-function updateELFeeLabels(){
-  const ef=document.getElementById('el-early-fee');const lf=document.getElementById('el-late-fee');
-  if(ef)ef.textContent='+'+fmtVND(EL_FEES.early);if(lf)lf.textContent='+'+fmtVND(EL_FEES.late);
-}
+function renderSettings(){document.getElementById('fee-early').value=EL_FEES.early;document.getElementById('fee-late').value=EL_FEES.late;document.getElementById('fee-saved').style.display='none';['pw-cur','pw-new','pw-confirm'].forEach(id=>document.getElementById(id).value='');document.getElementById('pw-msg').style.display='none';}
 
-window.changePassword = async function(){
-  const cur=document.getElementById('pw-cur').value;
-  const nw=document.getElementById('pw-new').value;
-  const cf=document.getElementById('pw-confirm').value;
-  const msg=document.getElementById('pw-msg');
-  const show=(txt,color)=>{msg.textContent=txt;msg.style.color=color;msg.style.display='inline';};
+window.saveFees=async function(){
+  const early=parseInt(document.getElementById('fee-early').value)||0,late=parseInt(document.getElementById('fee-late').value)||0;
+  EL_FEES={early,late};await setDoc(doc(db,'settings','fees'),{early,late});
+  updateELFeeLabels();const msg=document.getElementById('fee-saved');msg.style.display='inline';setTimeout(()=>msg.style.display='none',2500);
+};
+
+function updateELFeeLabels(){const ef=document.getElementById('el-early-fee'),lf=document.getElementById('el-late-fee');if(ef)ef.textContent='+'+fmtVND(EL_FEES.early);if(lf)lf.textContent='+'+fmtVND(EL_FEES.late);}
+
+window.changePassword=async function(){
+  const cur=document.getElementById('pw-cur').value,nw=document.getElementById('pw-new').value,cf=document.getElementById('pw-confirm').value;
+  const msg=document.getElementById('pw-msg');const show=(t,c)=>{msg.textContent=t;msg.style.color=c;msg.style.display='inline';};
   if(nw.length<4){show('Mật khẩu mới phải có ít nhất 4 ký tự','var(--red)');return;}
   if(nw!==cf){show('Xác nhận mật khẩu không khớp','var(--red)');return;}
   const snap=await getDoc(doc(db,'settings','auth'));
@@ -1246,41 +1280,20 @@ window.changePassword = async function(){
   show('✓ Đổi mật khẩu thành công','var(--green)');setTimeout(()=>msg.style.display='none',3000);
 };
 
-// Mobile
-window.setBottomNav = function(which){
-  document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('bnav-'+which);if(el)el.classList.add('active');
-};
-window.openAvailSheet = function(){
-  document.getElementById('sb-start-m').value=document.getElementById('sb-start').value;
-  document.getElementById('sb-end-m').value=document.getElementById('sb-end').value;
-  document.getElementById('avail-sheet').classList.add('open');
-  document.body.style.overflow='hidden';
-};
-window.closeAvailSheet = function(){
-  document.getElementById('avail-sheet').classList.remove('open');
-  document.body.style.overflow='';
-};
-window.syncAvailDates = function(source){
-  if(source==='d'){document.getElementById('sb-start-m').value=document.getElementById('sb-start').value;document.getElementById('sb-end-m').value=document.getElementById('sb-end').value;}
-  else{document.getElementById('sb-start').value=document.getElementById('sb-start-m').value;document.getElementById('sb-end').value=document.getElementById('sb-end-m').value;}
-};
-window.runAvailMobile = function(){
-  window.syncAvailDates('m');
-  const s=document.getElementById('sb-start-m').value,e=document.getElementById('sb-end-m').value;
-  _doAvail(s,e,document.getElementById('sb-result-m'));
-  _doAvail(s,e,document.getElementById('sb-result'));
-};
+// ════ MOBILE ════
+window.setBottomNav=function(which){document.querySelectorAll('.bnav-btn').forEach(b=>b.classList.remove('active'));const el=document.getElementById('bnav-'+which);if(el)el.classList.add('active');};
+window.openAvailSheet=function(){document.getElementById('sb-start-m').value=document.getElementById('sb-start').value;document.getElementById('sb-end-m').value=document.getElementById('sb-end').value;document.getElementById('avail-sheet').classList.add('open');document.body.style.overflow='hidden';};
+window.closeAvailSheet=function(){document.getElementById('avail-sheet').classList.remove('open');document.body.style.overflow='';};
+window.syncAvailDates=function(src){if(src==='d'){document.getElementById('sb-start-m').value=document.getElementById('sb-start').value;document.getElementById('sb-end-m').value=document.getElementById('sb-end').value;}else{document.getElementById('sb-start').value=document.getElementById('sb-start-m').value;document.getElementById('sb-end').value=document.getElementById('sb-end-m').value;}};
 
 // ════ INIT ════
-const _todayStr=new Date().toISOString().split('T')[0];
-['sb-start','sb-end','sb-start-m','sb-end-m'].forEach(id=>document.getElementById(id).value=_todayStr);
+const _today=new Date().toISOString().split('T')[0];
+['sb-start','sb-end','sb-start-m','sb-end-m'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=_today;});
+// Set current month for revenue
+const now=new Date();
+document.getElementById('rev-month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-seedIfEmpty().then(()=>{
-  startListeners();
-  updateELFeeLabels();
-  renderCalendar();
-});
+seedIfEmpty().then(()=>{startListeners();updateELFeeLabels();renderCalendar();});
 
 </script>
 </body>
