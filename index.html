@@ -54,8 +54,8 @@ body{font-family:'Mulish',sans-serif;background:var(--bg);color:var(--ink);min-h
 .stat-card{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
 .stat-lbl{font-size:9px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink4);margin-bottom:3px;}
 .stat-val{font-size:20px;font-weight:900;color:var(--ink);line-height:1.2;}
-.stat-chips{display:flex;flex-direction:column;gap:3px;margin-top:5px;}
-.chip-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-block;width:fit-content;margin-bottom:1px;}
+.stat-chips{display:flex;flex-direction:row;flex-wrap:wrap;gap:3px;margin-top:5px;}
+.chip-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-block;width:fit-content;}
 
 /* ── CALENDAR CONTROLS ── */
 .cal-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
@@ -523,17 +523,17 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
           <div id="av-daily-sec-d">
             <div class="sb-field">
               <div class="sb-lbl">Ngày bắt đầu</div>
-              <input type="date" id="sb-start" onchange="syncAvailDates('d')">
+              <input type="date" id="sb-start" onchange="syncAvailDates('d');runAvail()">
             </div>
             <div class="sb-field" style="margin-bottom:10px">
               <div class="sb-lbl">Ngày kết thúc</div>
-              <input type="date" id="sb-end" onchange="syncAvailDates('d')">
+              <input type="date" id="sb-end" onchange="syncAvailDates('d');runAvail()">
             </div>
           </div>
           <div id="av-shift-sec-d" style="display:none">
             <div class="sb-field" style="margin-bottom:8px">
               <div class="sb-lbl">Ngày</div>
-              <input type="date" id="sb-shift-date-d">
+              <input type="date" id="sb-shift-date-d" onchange="runAvail()">
             </div>
             <div style="display:flex;gap:6px;margin-bottom:10px">
               <div class="stile" id="av-sh-mc-d" onclick="selectAvailShiftD('morning-afternoon')" style="flex:1;padding:7px 6px">
@@ -544,7 +544,6 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
               </div>
             </div>
           </div>
-          <button class="btn-ok" style="width:100%;margin-bottom:12px" onclick="runAvail()">Kiểm tra</button>
           <div id="sb-result" class="sb-result"></div>
         </div>
       </div>
@@ -810,7 +809,10 @@ let avMode='daily', avModeD='daily', avShift=null, avShiftD=null;
 function startListeners(){
   onSnapshot(collection(db,'bookings'), snap=>{
     bookings=snap.docs.map(d=>d.data());
-    if(document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
+    if(document.getElementById('page-calendar').classList.contains('active')){
+      renderCalendar();
+      runAvail(); // auto-refresh avail sidebar
+    }
   });
   onSnapshot(collection(db,'cameras'), snap=>{
     if(!snap.empty) cameras=snap.docs.map(d=>d.data());
@@ -910,7 +912,7 @@ function renderCalendar(){
           tip+=`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)"><button onclick="deleteBookingId('${b.id}')" style="background:var(--red-bg);border:1px solid rgba(192,57,43,0.3);color:var(--red);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;width:100%;font-family:Mulish,sans-serif">Xóa</button></div>`;
         }
         if(hasNote)tip+=`<div class="tip-note">⚠ ${esc(b.note)}</div>`;
-        html+=`<div class="tip-host" onclick="toggleTip(event,'tip-${b.id}')"><div class="${pillCls}" style="pointer-events:auto"><span class="bpill-label">${esc(lbl)}</span>${hasNote&&!isBlocked?'<span class="note-dot"></span>':''}</div><div class="tip-box" id="tip-${b.id}" style="pointer-events:auto">${tip}</div></div>`;
+        html+=`<div class="tip-host" onclick="toggleTip(event,'tip-${b.id}')"><div class="${pillCls}"><span class="bpill-label">${esc(lbl)}</span>${hasNote&&!isBlocked?'<span class="note-dot"></span>':''}</div><div class="tip-box" id="tip-${b.id}" onclick="event.stopPropagation()">${tip}</div></div>`;
       });
       html+='</div>';
     });
@@ -922,7 +924,15 @@ function renderCalendar(){
 
 window.deleteBookingId=async function(id){
   if(!confirm('Xác nhận xóa lịch này?'))return;
-  await deleteDoc(doc(db,'bookings',id));
+  closeAllTips();
+  const batch=writeBatch(db);
+  // Delete main booking
+  batch.delete(doc(db,'bookings',id));
+  // Delete companion early/late blocked slots
+  batch.delete(doc(db,'bookings',id+'-E'));
+  batch.delete(doc(db,'bookings',id+'-L'));
+  // If this IS a blocked slot (id ends with -E or -L), also find and handle it
+  await batch.commit();
   toast('Đã xóa lịch');
 };
 
@@ -1016,6 +1026,7 @@ window.setAvailModeD=function(m){
   document.getElementById('av-daily-sec-d').style.display=m==='daily'?'block':'none';
   document.getElementById('av-shift-sec-d').style.display=m==='shift'?'block':'none';
   document.querySelectorAll('#av-sh-mc-d,#av-sh-ae-d').forEach(el=>el.classList.remove('on'));
+  runAvail();
 };
 window.selectAvailShift=function(s){
   avShift=s;
@@ -1026,6 +1037,7 @@ window.selectAvailShiftD=function(s){
   avShiftD=s;
   document.getElementById('av-sh-mc-d').classList.toggle('on',s==='morning-afternoon');
   document.getElementById('av-sh-ae-d').classList.toggle('on',s==='afternoon-evening');
+  runAvail();
 };
 
 // ════ BOOKING FORM ════
