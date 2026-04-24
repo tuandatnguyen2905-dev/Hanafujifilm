@@ -674,6 +674,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
       <div class="tgroup" style="margin-bottom:12px">
         <div class="tbtn on" id="m-daily" onclick="setMode('daily')">Thuê theo ngày</div>
         <div class="tbtn" id="m-shift" onclick="setMode('shift')">Thuê theo ca</div>
+        <div class="tbtn" id="m-hybrid" onclick="setMode('hybrid')">Hỗn hợp (ca + ngày)</div>
       </div>
       <div id="sec-daily">
         <div class="fg">
@@ -700,8 +701,67 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
           <div id="sp-cam-rows"></div>
         </div>
       </div>
+      <div id="sec-hybrid" style="display:none">
+        <div style="background:var(--blue-bg);border:1px solid rgba(30,77,107,0.2);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:11px;color:var(--blue);line-height:1.5">
+          💡 <strong>Thuê hỗn hợp:</strong> Khách thuê một hoặc hai ca đầu/cuối + chuỗi ngày giữa. Ví dụ: Ca chiều 23/4 + Daily 24–28/4.
+        </div>
+
+        <!-- Ca đầu -->
+        <div style="border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <input type="checkbox" id="hyb-pre-enable" onchange="onHybridChange()" style="width:16px;height:16px;cursor:pointer">
+            <label for="hyb-pre-enable" style="font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:var(--ink2);cursor:pointer">Ca đầu (trước chuỗi ngày)</label>
+          </div>
+          <div id="hyb-pre-fields" style="display:none">
+            <div class="fg">
+              <div class="field"><label>Ngày ca đầu</label><input type="date" id="hyb-pre-date" onchange="onHybridChange()"></div>
+              <div class="field"><label>Ca</label>
+                <select id="hyb-pre-shift" onchange="onHybridChange()">
+                  <option value="">Chọn ca...</option>
+                  <option value="morning-afternoon">Sáng–Chiều (08–15h)</option>
+                  <option value="afternoon-evening">Chiều–Tối (16–23h)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily giữa -->
+        <div style="border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:var(--ink2);margin-bottom:8px">📅 Chuỗi ngày (bắt buộc)</div>
+          <div class="fg">
+            <div class="field"><label>Ngày bắt đầu</label><input type="date" id="hyb-start" onchange="onHybridChange()"></div>
+            <div class="field"><label>Ngày kết thúc</label><input type="date" id="hyb-end" onchange="onHybridChange()"></div>
+          </div>
+        </div>
+
+        <!-- Ca cuối -->
+        <div style="border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <input type="checkbox" id="hyb-post-enable" onchange="onHybridChange()" style="width:16px;height:16px;cursor:pointer">
+            <label for="hyb-post-enable" style="font-size:11px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;color:var(--ink2);cursor:pointer">Ca cuối (sau chuỗi ngày)</label>
+          </div>
+          <div id="hyb-post-fields" style="display:none">
+            <div class="fg">
+              <div class="field"><label>Ngày ca cuối</label><input type="date" id="hyb-post-date" onchange="onHybridChange()"></div>
+              <div class="field"><label>Ca</label>
+                <select id="hyb-post-shift" onchange="onHybridChange()">
+                  <option value="">Chọn ca...</option>
+                  <option value="morning-afternoon">Sáng–Chiều (08–15h)</option>
+                  <option value="afternoon-evening">Chiều–Tối (16–23h)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="hybrid-preview" style="display:none" class="pbox">
+          <div id="hp-cam-rows"></div>
+        </div>
+      </div>
       <span class="slbl">Chọn máy ảnh <span style="font-size:9px;color:var(--ink4);font-weight:500;text-transform:none;letter-spacing:0">(máy đang bận sẽ bị gạch)</span></span>
       <div class="cg" id="cam-grid"></div>
+      <div id="sec-early-late">
       <span class="slbl">Lấy sớm / Trả muộn</span>
       <div class="fg">
         <div class="eltile" id="el-early" onclick="toggleEL('early')">
@@ -714,6 +774,7 @@ textarea{resize:vertical;min-height:56px;line-height:1.5;}
           <div class="elt-desc" id="el-late-d">Ca sát nhất hôm sau</div>
           <div class="elt-fee" id="el-late-fee">+50.000đ</div>
         </div>
+      </div>
       </div>
       <hr class="divline">
       <div class="fg">
@@ -916,17 +977,37 @@ function renderCalendar(){
       const inM=date.getMonth()===calMonth,isT=ds===today,isW=di>=5;
       let cls='cal-day';if(!inM)cls+=' other-month';if(isT)cls+=' is-today';if(isW)cls+=' is-weekend';
       html+=`<div class="${cls}"><div class="day-header"><span class="day-num">${date.getDate()}</span></div>`;
-      bookings.filter(b=>ds>=b.start&&ds<=b.end).forEach(b=>{
+      bookings.filter(b=>{
+        if(!(ds>=b.start&&ds<=b.end))return false;
+        // For hybrid main booking: only show in the daily range on calendar
+        if(b.mode==='hybrid'&&!b.blocked&&b.hybridDailyStart&&b.hybridDailyEnd){
+          return ds>=b.hybridDailyStart&&ds<=b.hybridDailyEnd;
+        }
+        return true;
+      }).forEach(b=>{
         const ci=camCI(b.cam),hasNote=!!(b.note&&b.note.trim()),isBlocked=!!b.blocked;
+        const isHybridShiftSub=isBlocked&&!!b.hybridParentId;
         let pillCls='';
-        if(isBlocked) pillCls='bpill mode-blocked';
+        if(isHybridShiftSub){
+          // Hybrid PRE/POST ca — show with shift color + cam tint (not red blocked)
+          pillCls='bpill '+(b.shift==='morning-afternoon'?'mode-shift-mc':'mode-shift-ae');
+        } else if(isBlocked) pillCls='bpill mode-blocked';
         else if(b.mode==='shift') pillCls='bpill '+(b.shift==='morning-afternoon'?'mode-shift-mc':'mode-shift-ae');
+        else if(b.mode==='hybrid') pillCls=`bpill cc-${ci} mode-daily`;
         else pillCls=`bpill cc-${ci} mode-daily`;
         const camObj=cameras.find(c=>c.id===b.cam);
         const camName=camObj?camObj.name:(b.camName||b.cam);
         let lbl='';
-        if(isBlocked){const bt=b.name.includes('Lấy sớm')?'Lấy sớm':'Trả muộn';lbl=bt+' · '+camName+(b.shift?' · '+shiftLbl(b.shift):'');}
+        if(isHybridShiftSub){
+          const baseName=b.name.replace(/ \((Ca đầu|Ca cuối)\)$/,'');
+          const label=b.name.includes('Ca đầu')?'Ca đầu':'Ca cuối';
+          lbl=label+' · '+shiftLbl(b.shift)+' · '+baseName+' · '+camName;
+        } else if(isBlocked){
+          const bt=b.name.includes('Lấy sớm')?'Lấy sớm':'Trả muộn';
+          lbl=bt+' · '+camName+(b.shift?' · '+shiftLbl(b.shift):'');
+        }
         else if(b.mode==='shift') lbl=shiftLbl(b.shift)+' · '+b.name+' · '+camName;
+        else if(b.mode==='hybrid') lbl='🔀 '+b.name+' · '+camName;
         else lbl=b.name+' · '+camName;
         const refund=(b.depositAmt||0)-(b.price||0);
 
@@ -934,9 +1015,30 @@ function renderCalendar(){
         if(!isBlocked) tip+=`<button class="tip-copy-btn" onclick="copyInvoice('${b.id}');event.stopPropagation()">📋 Copy</button>`;
         tip+=`</div>`;
 
-        if(!isBlocked){
-          tip+=`<div class="tip-r"><span class="tip-l">Ca/Loại</span><span class="tip-v">${b.mode==='shift'?shiftLbl(b.shift):'Theo ngày'}</span></div>`;
-          if(b.mode!=='shift'){
+        if(isHybridShiftSub){
+          // Show ref to parent hybrid booking
+          const parent=bookings.find(x=>x.id===b.hybridParentId);
+          tip+=`<div class="tip-r"><span class="tip-l">Loại</span><span class="tip-v">Thuê hỗn hợp – ${b.name.includes('Ca đầu')?'Ca đầu':'Ca cuối'}</span></div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Ca</span><span class="tip-v">${shiftLbl(b.shift)}</span></div>`;
+          tip+=`<div class="tip-r"><span class="tip-l">Ngày</span><span class="tip-v">${fmtD(b.start)}</span></div>`;
+          if(parent){
+            tip+=`<div class="tip-r"><span class="tip-l">Khách</span><span class="tip-v">${esc(parent.name)}</span></div>`;
+            tip+=`<div class="tip-r"><span class="tip-l">Chuỗi ngày</span><span class="tip-v">${fmtD(parent.hybridDailyStart)} → ${fmtD(parent.hybridDailyEnd)}</span></div>`;
+            tip+=`<div class="tip-r"><span class="tip-l">Tổng booking</span><span class="tip-v">${fmtVND(parent.price||0)}</span></div>`;
+          }
+          tip+=`<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <button onclick="openEditModal('${b.hybridParentId}')" style="background:var(--ink);border:none;color:var(--white);border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Mulish,sans-serif">✏ Sửa booking</button>
+            <button onclick="deleteBookingId('${b.hybridParentId}')" style="background:var(--red-bg);border:1px solid rgba(192,57,43,0.3);color:var(--red);border-radius:6px;padding:5px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Mulish,sans-serif">✕ Xóa cả</button>
+          </div>`;
+        } else if(!isBlocked){
+          const modeTxt=b.mode==='hybrid'?'🔀 Hỗn hợp (ca + ngày)':(b.mode==='shift'?shiftLbl(b.shift):'Theo ngày');
+          tip+=`<div class="tip-r"><span class="tip-l">Ca/Loại</span><span class="tip-v">${modeTxt}</span></div>`;
+          if(b.mode==='hybrid'){
+            if(b.hybridPre) tip+=`<div class="tip-r"><span class="tip-l">🌅 Ca đầu</span><span class="tip-v">${shiftLbl(b.hybridPre.shift)} · ${fmtD(b.hybridPre.date)} (${fmtVND(b.hybridPre.ppd)})</span></div>`;
+            tip+=`<div class="tip-r"><span class="tip-l">📅 Chuỗi ngày</span><span class="tip-v">${fmtD(b.hybridDailyStart)} → ${fmtD(b.hybridDailyEnd)} (${b.days||1} ngày)</span></div>`;
+            if(b.hybridPost) tip+=`<div class="tip-r"><span class="tip-l">🌙 Ca cuối</span><span class="tip-v">${shiftLbl(b.hybridPost.shift)} · ${fmtD(b.hybridPost.date)} (${fmtVND(b.hybridPost.ppd)})</span></div>`;
+            tip+=`<div class="tip-r"><span class="tip-l">Đơn giá daily</span><span class="tip-v">${fmtVND(b.pricePerUnit||0)}/ngày</span></div>`;
+          } else if(b.mode!=='shift'){
             tip+=`<div class="tip-r"><span class="tip-l">Thời gian</span><span class="tip-v">${fmtD(b.start)}${b.start!==b.end?' → '+fmtD(b.end):''}</span></div>`;
             tip+=`<div class="tip-r"><span class="tip-l">Số ngày</span><span class="tip-v">${b.days||1} ngày</span></div>`;
           }
@@ -974,7 +1076,12 @@ function buildInvoiceText(b,camName){
   txt+='👤 Khách hàng: '+b.name+'\n';
   if(b.phone)txt+='📞 SĐT: '+b.phone+'\n';
   txt+='📷 Máy: '+camName+'\n';
-  if(b.mode==='shift') txt+='⏰ Ca: '+shiftLbl(b.shift)+' ngày '+fmtD(b.start)+'\n';
+  if(b.mode==='hybrid'){
+    txt+='🔀 Loại thuê: Hỗn hợp (ca + ngày)\n';
+    if(b.hybridPre) txt+='  🌅 Ca đầu: '+shiftLbl(b.hybridPre.shift)+' · '+fmtD(b.hybridPre.date)+' · '+fmtVND(b.hybridPre.ppd)+'\n';
+    txt+='  📅 Chuỗi ngày: '+fmtD(b.hybridDailyStart)+' → '+fmtD(b.hybridDailyEnd)+' ('+(b.days||1)+' ngày × '+fmtVND(b.pricePerUnit||0)+')\n';
+    if(b.hybridPost) txt+='  🌙 Ca cuối: '+shiftLbl(b.hybridPost.shift)+' · '+fmtD(b.hybridPost.date)+' · '+fmtVND(b.hybridPost.ppd)+'\n';
+  } else if(b.mode==='shift') txt+='⏰ Ca: '+shiftLbl(b.shift)+' ngày '+fmtD(b.start)+'\n';
   else txt+='📅 Thời gian: '+fmtD(b.start)+(b.start!==b.end?' → '+fmtD(b.end):'')+' ('+(b.days||1)+' ngày)\n';
   if(b.delivery)txt+='🚚 Giao máy: '+b.delivery+'\n';
   if(b.deposit)txt+='🔒 Hình thức cọc: '+b.deposit+'\n';
@@ -1010,6 +1117,8 @@ async function deleteBookingId(id){
   batch.delete(doc(db,'bookings',id));
   batch.delete(doc(db,'bookings',id+'-E'));
   batch.delete(doc(db,'bookings',id+'-L'));
+  batch.delete(doc(db,'bookings',id+'-PRE'));
+  batch.delete(doc(db,'bookings',id+'-POST'));
   batch.set(doc(db,'deletedBookings',delRecordId),{id,deletedAt:new Date().toISOString(),month:localDs(new Date()).slice(0,7)});
   try{await batch.commit();toast('Đã xóa lịch');}catch(e){toast('Lỗi: '+e.message);}
 }
@@ -1027,7 +1136,24 @@ function openEditModal(id){
   document.getElementById('f-dep-amt').value=b.depositAmt??100000;
   if(b.discType==='fixed'){setDiscType('fixed');document.getElementById('f-disc').value=b.discount||0;}
   else{setDiscType('pct');document.getElementById('f-disc').value=b.discount||0;}
-  if(b.mode==='shift'){
+
+  if(b.mode==='hybrid'){
+    setMode('hybrid');
+    document.getElementById('hyb-start').value=b.hybridDailyStart||b.start||'';
+    document.getElementById('hyb-end').value=b.hybridDailyEnd||b.end||'';
+    if(b.hybridPre){
+      document.getElementById('hyb-pre-enable').checked=true;
+      document.getElementById('hyb-pre-fields').style.display='block';
+      document.getElementById('hyb-pre-date').value=b.hybridPre.date||'';
+      document.getElementById('hyb-pre-shift').value=b.hybridPre.shift||'';
+    }
+    if(b.hybridPost){
+      document.getElementById('hyb-post-enable').checked=true;
+      document.getElementById('hyb-post-fields').style.display='block';
+      document.getElementById('hyb-post-date').value=b.hybridPost.date||'';
+      document.getElementById('hyb-post-shift').value=b.hybridPost.shift||'';
+    }
+  } else if(b.mode==='shift'){
     setMode('shift');
     document.getElementById('f-sdate').value=b.start||'';
     if(b.shift) setShift(b.shift);
@@ -1187,13 +1313,16 @@ function closeModal(){
 
 function resetForm(){
   fMode='daily';fShift=null;fSelCams=[];fEL={early:false,late:false};discType='pct';
-  ['f-name','f-phone','f-start','f-end','f-sdate','f-note'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['f-name','f-phone','f-start','f-end','f-sdate','f-note','hyb-start','hyb-end','hyb-pre-date','hyb-post-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['hyb-pre-shift','hyb-post-shift'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['hyb-pre-enable','hyb-post-enable'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  ['hyb-pre-fields','hyb-post-fields'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});
   document.getElementById('f-dep').value='';document.getElementById('f-del').value='';
   document.getElementById('f-dep-amt').value=100000;document.getElementById('f-disc').value=0;
   setMode('daily');setDiscType('pct');
   ['sh-mc','sh-ae'].forEach(id=>document.getElementById(id).classList.remove('on'));
   ['el-early','el-late'].forEach(id=>document.getElementById(id).classList.remove('on'));
-  ['daily-preview','shift-preview','final-box'].forEach(id=>document.getElementById(id).style.display='none');
+  ['daily-preview','shift-preview','hybrid-preview','final-box'].forEach(id=>document.getElementById(id).style.display='none');
   updateELDesc();
 }
 
@@ -1201,9 +1330,13 @@ function setMode(m){
   fMode=m;fShift=null;
   document.getElementById('m-daily').classList.toggle('on',m==='daily');
   document.getElementById('m-shift').classList.toggle('on',m==='shift');
+  document.getElementById('m-hybrid').classList.toggle('on',m==='hybrid');
   document.getElementById('sec-daily').style.display=m==='daily'?'block':'none';
   document.getElementById('sec-shift').style.display=m==='shift'?'block':'none';
-  ['daily-preview','shift-preview','final-box'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('sec-hybrid').style.display=m==='hybrid'?'block':'none';
+  // Hide early/late section in hybrid mode (ca đầu/cuối is built-in there)
+  document.getElementById('sec-early-late').style.display=m==='hybrid'?'none':'block';
+  ['daily-preview','shift-preview','hybrid-preview','final-box'].forEach(id=>document.getElementById(id).style.display='none');
   updateELDesc();
 }
 
@@ -1250,11 +1383,43 @@ function onDateChange(){
   if(fMode==='daily'){
     const s=document.getElementById('f-start').value,e=document.getElementById('f-end').value;
     buildCamGrid(s,e);
-  } else {
+  } else if(fMode==='shift'){
     const d=document.getElementById('f-sdate').value;
     buildCamGrid(d,d,fShift);
+  } else if(fMode==='hybrid'){
+    onHybridChange();return;
   }
   updatePricePreview();updateFinal();updateELDesc();
+}
+
+function onHybridChange(){
+  const preEn=document.getElementById('hyb-pre-enable').checked;
+  const postEn=document.getElementById('hyb-post-enable').checked;
+  document.getElementById('hyb-pre-fields').style.display=preEn?'block':'none';
+  document.getElementById('hyb-post-fields').style.display=postEn?'block':'none';
+  // Build cam grid based on union of all dates
+  const range=getHybridFullRange();
+  if(range) buildCamGrid(range.start,range.end);
+  else buildCamGrid(null,null);
+  updateHybridPreview();
+  updateFinal();
+}
+
+// Return full coverage range for hybrid (from earliest touched date to latest), or null
+function getHybridFullRange(){
+  const preEn=document.getElementById('hyb-pre-enable').checked;
+  const postEn=document.getElementById('hyb-post-enable').checked;
+  const hs=document.getElementById('hyb-start').value;
+  const he=document.getElementById('hyb-end').value;
+  const preDate=document.getElementById('hyb-pre-date').value;
+  const postDate=document.getElementById('hyb-post-date').value;
+  const dates=[];
+  if(hs)dates.push(hs);if(he)dates.push(he);
+  if(preEn&&preDate)dates.push(preDate);
+  if(postEn&&postDate)dates.push(postDate);
+  if(!dates.length)return null;
+  dates.sort();
+  return{start:dates[0],end:dates[dates.length-1]};
 }
 
 function setDiscType(t){
@@ -1276,7 +1441,11 @@ function updateELDesc(){
 }
 
 function getDays(){const s=document.getElementById('f-start').value,e=document.getElementById('f-end').value;if(!s||!e)return 0;const d=Math.round((new Date(e)-new Date(s))/86400000)+1;return d>0?d:0;}
-function updatePricePreview(){if(fMode==='daily')updateDailyPreview();else updateShiftPreview();}
+function updatePricePreview(){
+  if(fMode==='daily')updateDailyPreview();
+  else if(fMode==='shift')updateShiftPreview();
+  else if(fMode==='hybrid')updateHybridPreview();
+}
 
 function updateDailyPreview(){
   const days=getDays();
@@ -1319,6 +1488,62 @@ function updateShiftPreview(){
   document.getElementById('shift-preview').style.display='block';
 }
 
+// Returns {pre:{date,shift}|null, daily:{start,end,days}|null, post:{date,shift}|null, valid:bool, error:string}
+function getHybridParts(){
+  const preEn=document.getElementById('hyb-pre-enable').checked;
+  const postEn=document.getElementById('hyb-post-enable').checked;
+  const hs=document.getElementById('hyb-start').value;
+  const he=document.getElementById('hyb-end').value;
+  const preDate=document.getElementById('hyb-pre-date').value;
+  const preShift=document.getElementById('hyb-pre-shift').value;
+  const postDate=document.getElementById('hyb-post-date').value;
+  const postShift=document.getElementById('hyb-post-shift').value;
+  const out={pre:null,daily:null,post:null,valid:false,error:''};
+  if(!hs||!he){out.error='Chọn ngày bắt đầu/kết thúc chuỗi ngày';return out;}
+  if(new Date(he)<new Date(hs)){out.error='Ngày kết thúc phải sau ngày bắt đầu';return out;}
+  const days=Math.round((new Date(he)-new Date(hs))/86400000)+1;
+  out.daily={start:hs,end:he,days};
+  if(preEn){
+    if(!preDate||!preShift){out.error='Điền đầy đủ ca đầu';return out;}
+    if(preDate>=hs){out.error='Ngày ca đầu phải TRƯỚC ngày bắt đầu chuỗi ngày';return out;}
+    out.pre={date:preDate,shift:preShift};
+  }
+  if(postEn){
+    if(!postDate||!postShift){out.error='Điền đầy đủ ca cuối';return out;}
+    if(postDate<=he){out.error='Ngày ca cuối phải SAU ngày kết thúc chuỗi ngày';return out;}
+    out.post={date:postDate,shift:postShift};
+  }
+  out.valid=true;
+  return out;
+}
+
+function updateHybridPreview(){
+  const p=getHybridParts();
+  if(!p.valid||!fSelCams.length){document.getElementById('hybrid-preview').style.display='none';return;}
+  const bd=editingId?null:localDs(new Date());
+  const dailyKey=getTierKey(p.daily.days);
+  let rows='';
+  fSelCams.forEach(id=>{
+    const c=cameras.find(x=>x.id===id);if(!c)return;
+    rows+=`<div style="font-size:11px;font-weight:800;letter-spacing:0.4px;color:var(--ink3);margin-top:6px;margin-bottom:2px">📷 ${esc(c.name)}</div>`;
+    if(p.pre){
+      const r=c.pShift||150000;const pr=getActivePromoPrice(c,'pShift',bd);
+      const ef=(pr!==null&&pr<r)?pr:r;
+      rows+=`<div class="prow"><span style="padding-left:10px">🌅 Ca đầu · ${shiftLbl(p.pre.shift)} · ${fmtD(p.pre.date)}</span><b>${fmtVND(ef)}${(pr!==null&&pr<r)?' <span style="color:var(--green);font-size:9px">KM</span>':''}</b></div>`;
+    }
+    const r=c[dailyKey]||c.p1||0;const pr=getActivePromoPrice(c,dailyKey,bd);
+    const ef=(pr!==null&&pr<r)?pr:r;
+    rows+=`<div class="prow"><span style="padding-left:10px">📅 Daily × ${p.daily.days} ngày · mức ${getTierLabel(p.daily.days)}</span><b>${fmtVND(ef)}/ng × ${p.daily.days} = ${fmtVND(ef*p.daily.days)}${(pr!==null&&pr<r)?' <span style="color:var(--green);font-size:9px">KM</span>':''}</b></div>`;
+    if(p.post){
+      const r2=c.pShift||150000;const pr2=getActivePromoPrice(c,'pShift',bd);
+      const ef2=(pr2!==null&&pr2<r2)?pr2:r2;
+      rows+=`<div class="prow"><span style="padding-left:10px">🌙 Ca cuối · ${shiftLbl(p.post.shift)} · ${fmtD(p.post.date)}</span><b>${fmtVND(ef2)}${(pr2!==null&&pr2<r2)?' <span style="color:var(--green);font-size:9px">KM</span>':''}</b></div>`;
+    }
+  });
+  document.getElementById('hp-cam-rows').innerHTML=rows;
+  document.getElementById('hybrid-preview').style.display='block';
+}
+
 function updateFinal(){
   if(!fSelCams.length){document.getElementById('final-box').style.display='none';return;}
   let sub=0,promoSaved=0;
@@ -1333,7 +1558,7 @@ function updateFinal(){
       if(promo!==null&&promo<regular){sub+=promo*days;promoSaved+=(regular-promo)*days;}
       else sub+=regular*days;
     });
-  } else {
+  } else if(fMode==='shift'){
     if(!fShift){document.getElementById('final-box').style.display='none';return;}
     fSelCams.forEach(id=>{
       const c=cameras.find(x=>x.id===id);if(!c)return;
@@ -1342,8 +1567,32 @@ function updateFinal(){
       if(promo!==null&&promo<regular){sub+=promo;promoSaved+=(regular-promo);}
       else sub+=regular;
     });
+  } else if(fMode==='hybrid'){
+    const p=getHybridParts();
+    if(!p.valid){document.getElementById('final-box').style.display='none';return;}
+    const dailyKey=getTierKey(p.daily.days);
+    fSelCams.forEach(id=>{
+      const c=cameras.find(x=>x.id===id);if(!c)return;
+      // Daily part
+      const rD=c[dailyKey]||c.p1||0;
+      const pD=getActivePromoPrice(c,dailyKey,bd);
+      if(pD!==null&&pD<rD){sub+=pD*p.daily.days;promoSaved+=(rD-pD)*p.daily.days;}
+      else sub+=rD*p.daily.days;
+      // Pre shift
+      if(p.pre){
+        const r=c.pShift||150000;const pr=getActivePromoPrice(c,'pShift',bd);
+        if(pr!==null&&pr<r){sub+=pr;promoSaved+=(r-pr);}
+        else sub+=r;
+      }
+      // Post shift
+      if(p.post){
+        const r=c.pShift||150000;const pr=getActivePromoPrice(c,'pShift',bd);
+        if(pr!==null&&pr<r){sub+=pr;promoSaved+=(r-pr);}
+        else sub+=r;
+      }
+    });
   }
-  const elFee=(fEL.early?EL_FEES.early:0)+(fEL.late?EL_FEES.late:0);
+  const elFee=(fMode==='hybrid')?0:((fEL.early?EL_FEES.early:0)+(fEL.late?EL_FEES.late:0));
   const discVal=parseFloat(document.getElementById('f-disc').value)||0;
   let discAmt=0;
   if(discType==='pct') discAmt=Math.round(sub*discVal/100);
@@ -1377,78 +1626,154 @@ async function submitBooking(){
   const name=document.getElementById('f-name').value.trim();
   if(!name){toast('Vui lòng nhập tên khách hàng');return;}
   if(!fSelCams.length){toast('Vui lòng chọn máy ảnh');return;}
-  let start,end;
+
+  let start,end,hybParts=null;
   if(fMode==='daily'){
     start=document.getElementById('f-start').value;end=document.getElementById('f-end').value;
     if(!start||!end){toast('Vui lòng chọn ngày bắt đầu và kết thúc');return;}
     if(new Date(end)<new Date(start)){toast('Ngày kết thúc phải sau ngày bắt đầu');return;}
-  } else {
+  } else if(fMode==='shift'){
     start=end=document.getElementById('f-sdate').value;
     if(!start){toast('Vui lòng chọn ngày thuê');return;}
     if(!fShift){toast('Vui lòng chọn ca thuê');return;}
+  } else if(fMode==='hybrid'){
+    hybParts=getHybridParts();
+    if(!hybParts.valid){toast(hybParts.error);return;}
+    // "start" and "end" cover the full outer range so calendar conflict-check works
+    start=hybParts.pre?hybParts.pre.date:hybParts.daily.start;
+    end=hybParts.post?hybParts.post.date:hybParts.daily.end;
   }
-  const days=fMode==='daily'?getDays():1;
-  const key=fMode==='daily'?getTierKey(days):'pShift';
+
+  const days=fMode==='daily'?getDays():(fMode==='hybrid'?hybParts.daily.days:1);
+  const key=fMode==='daily'?getTierKey(days):(fMode==='hybrid'?getTierKey(days):'pShift');
   const discVal=parseFloat(document.getElementById('f-disc').value)||0;
-  const elFee=(fEL.early?EL_FEES.early:0)+(fEL.late?EL_FEES.late:0);
+  const elFee=(fMode==='hybrid')?0:((fEL.early?EL_FEES.early:0)+(fEL.late?EL_FEES.late:0));
   const depAmt=parseFloat(document.getElementById('f-dep-amt').value)||0;
   const phone=document.getElementById('f-phone').value.trim(),note=document.getElementById('f-note').value.trim();
   const deposit=document.getElementById('f-dep').value,delivery=document.getElementById('f-del').value;
   const bookingDate=localDs(new Date());
 
-  const calcBookingPrice=function(c){
-    const regular=c[key]||c.p1||0;
-    let ppd=regular, promoSaved=0;
-    if(editingId){
-      const orig=bookings.find(x=>x.id===editingId);
-      const wasDeposited=(orig&&(orig.depositAmt||0)>=100000);
-      if(wasDeposited&&orig.pricePerUnit){
-        ppd=orig.pricePerUnit;
-      } else {
-        const promo=getActivePromoPrice(c,key,orig?orig.bookedAt:null);
-        if(promo!==null&&promo<regular){ppd=promo;promoSaved=(regular-promo)*(fMode==='daily'?days:1);}
+  // Resolve locked promo (for deposit-based lock) for a given tierKey on camera c
+  const resolvePpd=function(c,tierKey,orig){
+    const regular=c[tierKey]||c.p1||0;
+    if(editingId&&orig){
+      const wasDeposited=(orig.depositAmt||0)>=100000;
+      // For hybrid: orig has pricePerUnit for daily; ca prices live in hybridPre/hybridPost
+      if(wasDeposited){
+        if(tierKey==='pShift'&&orig.mode==='hybrid'){
+          // Check if orig.hybridPre or orig.hybridPost has locked ppd
+          // Don't lock shift — they are different concept; fallback to current logic
+        } else if(orig.pricePerUnit&&orig.tierKey===tierKey){
+          return{ppd:orig.pricePerUnit,saved:0};
+        }
       }
-    } else {
-      const promo=getActivePromoPrice(c,key,bookingDate);
-      if(promo!==null&&promo<regular){ppd=promo;promoSaved=(regular-promo)*(fMode==='daily'?days:1);}
     }
-    const base=ppd*(fMode==='daily'?days:1);
+    const bd=editingId&&orig?orig.bookedAt:bookingDate;
+    const promo=getActivePromoPrice(c,tierKey,bd);
+    if(promo!==null&&promo<regular) return{ppd:promo,saved:regular-promo};
+    return{ppd:regular,saved:0};
+  };
+
+  const calcBookingPrice=function(c,orig){
+    if(fMode==='hybrid'){
+      const dp=resolvePpd(c,key,orig); // daily
+      let base=dp.ppd*days, promoSaved=dp.saved*days;
+      let shiftRegSum=0;
+      let preInfo=null,postInfo=null;
+      if(hybParts.pre){
+        const sp=resolvePpd(c,'pShift',orig);
+        base+=sp.ppd; promoSaved+=sp.saved;
+        shiftRegSum+=(c.pShift||150000);
+        preInfo={date:hybParts.pre.date,shift:hybParts.pre.shift,ppd:sp.ppd};
+      }
+      if(hybParts.post){
+        const sp=resolvePpd(c,'pShift',orig);
+        base+=sp.ppd; promoSaved+=sp.saved;
+        shiftRegSum+=(c.pShift||150000);
+        postInfo={date:hybParts.post.date,shift:hybParts.post.shift,ppd:sp.ppd};
+      }
+      const subTotal=(c[key]||c.p1||0)*days+shiftRegSum;
+      let discAmt=0;
+      if(discType==='pct') discAmt=Math.round(base*discVal/100);
+      else discAmt=Math.min(discVal,base);
+      return{base,subTotal,discAmt,promoDisc:promoSaved,total:base-discAmt+elFee,pricePerUnit:dp.ppd,preInfo,postInfo};
+    }
+    // daily or shift
+    const r=resolvePpd(c,key,orig);
+    const nUnits=fMode==='daily'?days:1;
+    const base=r.ppd*nUnits;
+    const subTotal=(c[key]||c.p1||0)*nUnits;
     let discAmt=0;
     if(discType==='pct') discAmt=Math.round(base*discVal/100);
     else discAmt=Math.min(discVal,base);
-    return{base:base,subTotal:regular*(fMode==='daily'?days:1),discAmt:discAmt,promoDisc:promoSaved,total:base-discAmt+elFee,pricePerUnit:ppd};
+    return{base,subTotal,discAmt,promoDisc:r.saved*nUnits,total:base-discAmt+elFee,pricePerUnit:r.ppd};
   };
 
-  const mkBlockedDoc=function(id,name,camId,camName,ds,shift,createdAt){
+  const mkBlockedDoc=function(id,nm,camId,camName,ds,shift,createdAt){
     const isEarly=id.endsWith('-E');
-    return{id,name:name+' ('+(isEarly?'Lấy sớm':'Trả muộn')+')',cam:camId,camName,mode:'shift',shift:shift,start:ds,end:ds,days:1,price:0,depositAmt:0,discount:0,discType:'pct',elFee:0,subTotal:0,pricePerUnit:0,tierKey:'',blocked:true,createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false},promoDis:0};
+    return{id,name:nm+' ('+(isEarly?'Lấy sớm':'Trả muộn')+')',cam:camId,camName,mode:'shift',shift,start:ds,end:ds,days:1,price:0,depositAmt:0,discount:0,discType:'pct',elFee:0,subTotal:0,pricePerUnit:0,tierKey:'',blocked:true,createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false},promoDis:0};
   };
 
+  // Hybrid sub-shift doc (not "blocked" — part of a real hybrid booking, shown separately on calendar for date mismatch)
+  const mkHybridShiftDoc=function(id,nm,camId,camName,ds,shift,createdAt,parentId,label){
+    return{id,name:nm+' ('+label+')',cam:camId,camName,mode:'shift',shift,start:ds,end:ds,days:1,price:0,depositAmt:0,discount:0,discType:'pct',elFee:0,subTotal:0,pricePerUnit:0,tierKey:'pShift',blocked:true,createdAt,phone:'',note:'',deposit:'',delivery:'',earlyLate:{early:false,late:false},promoDis:0,hybridParentId:parentId};
+  };
+
+  // ── EDIT MODE ──
   if(editingId){
     const orig=bookings.find(x=>x.id===editingId);if(!orig){toast('Không tìm thấy lịch gốc');return;}
     const camId=fSelCams[0];const c=cameras.find(x=>x.id===camId);if(!c){toast('Máy không hợp lệ');return;}
-    const prices=calcBookingPrice(c);
-    const updated={...orig,name,phone,note,cam:camId,camName:c.name,mode:fMode,shift:fShift,start,end,days:fMode==='daily'?days:1,tierKey:key,pricePerUnit:prices.pricePerUnit,subTotal:prices.subTotal,discount:discVal,discType,promoDis:prices.promoDisc,elFee,price:prices.total,depositAmt:depAmt,deposit,delivery,earlyLate:{...fEL}};
+    const prices=calcBookingPrice(c,orig);
+    const updated={...orig,name,phone,note,cam:camId,camName:c.name,mode:fMode,shift:fShift,start,end,days:fMode==='hybrid'?hybParts.daily.days:(fMode==='daily'?days:1),tierKey:key,pricePerUnit:prices.pricePerUnit,subTotal:prices.subTotal,discount:discVal,discType,promoDis:prices.promoDisc,elFee,price:prices.total,depositAmt:depAmt,deposit,delivery,earlyLate:{...fEL}};
+    if(fMode==='hybrid'){
+      updated.hybridDailyStart=hybParts.daily.start;
+      updated.hybridDailyEnd=hybParts.daily.end;
+      updated.hybridPre=prices.preInfo||null;
+      updated.hybridPost=prices.postInfo||null;
+    } else {
+      updated.hybridDailyStart=null;updated.hybridDailyEnd=null;
+      updated.hybridPre=null;updated.hybridPost=null;
+    }
     const batch=writeBatch(db);
     batch.set(doc(db,'bookings',editingId),updated);
-    batch.delete(doc(db,'bookings',editingId+'-E'));
-    batch.delete(doc(db,'bookings',editingId+'-L'));
-    if(fEL.early){const prev=new Date(start);prev.setDate(prev.getDate()-1);const bd=mkBlockedDoc(editingId+'-E',name,camId,c.name,localDs(prev),'afternoon-evening',orig.createdAt);batch.set(doc(db,'bookings',editingId+'-E'),bd);}
-    if(fEL.late){const nxt=new Date(end);nxt.setDate(nxt.getDate()+1);const bd=mkBlockedDoc(editingId+'-L',name,camId,c.name,localDs(nxt),'morning-afternoon',orig.createdAt);batch.set(doc(db,'bookings',editingId+'-L'),bd);}
+    // Remove all helper docs from any previous mode
+    ['-E','-L','-PRE','-POST'].forEach(sfx=>batch.delete(doc(db,'bookings',editingId+sfx)));
+    if(fMode!=='hybrid'){
+      if(fEL.early){const prev=new Date(start);prev.setDate(prev.getDate()-1);batch.set(doc(db,'bookings',editingId+'-E'),mkBlockedDoc(editingId+'-E',name,camId,c.name,localDs(prev),'afternoon-evening',orig.createdAt));}
+      if(fEL.late){const nxt=new Date(end);nxt.setDate(nxt.getDate()+1);batch.set(doc(db,'bookings',editingId+'-L'),mkBlockedDoc(editingId+'-L',name,camId,c.name,localDs(nxt),'morning-afternoon',orig.createdAt));}
+    } else {
+      if(hybParts.pre){const id2=editingId+'-PRE';batch.set(doc(db,'bookings',id2),mkHybridShiftDoc(id2,name,camId,c.name,hybParts.pre.date,hybParts.pre.shift,orig.createdAt,editingId,'Ca đầu'));}
+      if(hybParts.post){const id2=editingId+'-POST';batch.set(doc(db,'bookings',id2),mkHybridShiftDoc(id2,name,camId,c.name,hybParts.post.date,hybParts.post.shift,orig.createdAt,editingId,'Ca cuối'));}
+    }
     try{await batch.commit();toast('Đã cập nhật lịch!');closeModal();}catch(e){toast('Lỗi: '+e.message);}
     return;
   }
 
+  // ── CREATE MODE ──
   const now=new Date().toISOString();
   const batch=writeBatch(db);
   fSelCams.forEach(id=>{
     const c=cameras.find(x=>x.id===id);if(!c)return;
-    const prices=calcBookingPrice(c);
+    const prices=calcBookingPrice(c,null);
     const bkId=Date.now()+'-'+id+'-'+Math.random().toString(36).slice(2,6);
-    const bk={id:bkId,name,phone,note,cam:id,camName:c.name,mode:fMode,shift:fShift,start,end,days:fMode==='daily'?days:1,tierKey:key,pricePerUnit:prices.pricePerUnit,subTotal:prices.subTotal,discount:discVal,discType,promoDis:prices.promoDisc,elFee,price:prices.total,depositAmt:depAmt,deposit,delivery,earlyLate:{...fEL},blocked:false,createdAt:now,bookedAt:bookingDate};
+    const bk={id:bkId,name,phone,note,cam:id,camName:c.name,mode:fMode,shift:fShift,start,end,
+      days:fMode==='hybrid'?hybParts.daily.days:(fMode==='daily'?days:1),
+      tierKey:key,pricePerUnit:prices.pricePerUnit,subTotal:prices.subTotal,discount:discVal,discType,
+      promoDis:prices.promoDisc,elFee,price:prices.total,depositAmt:depAmt,deposit,delivery,
+      earlyLate:{...fEL},blocked:false,createdAt:now,bookedAt:bookingDate,
+      hybridDailyStart:fMode==='hybrid'?hybParts.daily.start:null,
+      hybridDailyEnd:fMode==='hybrid'?hybParts.daily.end:null,
+      hybridPre:fMode==='hybrid'?(prices.preInfo||null):null,
+      hybridPost:fMode==='hybrid'?(prices.postInfo||null):null,
+    };
     batch.set(doc(db,'bookings',bkId),bk);
-    if(fEL.early){const prev=new Date(start);prev.setDate(prev.getDate()-1);const bd=mkBlockedDoc(bkId+'-E',name,id,c.name,localDs(prev),'afternoon-evening',now);batch.set(doc(db,'bookings',bkId+'-E'),bd);}
-    if(fEL.late){const nxt=new Date(end);nxt.setDate(nxt.getDate()+1);const bd=mkBlockedDoc(bkId+'-L',name,id,c.name,localDs(nxt),'morning-afternoon',now);batch.set(doc(db,'bookings',bkId+'-L'),bd);}
+    if(fMode==='hybrid'){
+      if(hybParts.pre){const id2=bkId+'-PRE';batch.set(doc(db,'bookings',id2),mkHybridShiftDoc(id2,name,id,c.name,hybParts.pre.date,hybParts.pre.shift,now,bkId,'Ca đầu'));}
+      if(hybParts.post){const id2=bkId+'-POST';batch.set(doc(db,'bookings',id2),mkHybridShiftDoc(id2,name,id,c.name,hybParts.post.date,hybParts.post.shift,now,bkId,'Ca cuối'));}
+    } else {
+      if(fEL.early){const prev=new Date(start);prev.setDate(prev.getDate()-1);batch.set(doc(db,'bookings',bkId+'-E'),mkBlockedDoc(bkId+'-E',name,id,c.name,localDs(prev),'afternoon-evening',now));}
+      if(fEL.late){const nxt=new Date(end);nxt.setDate(nxt.getDate()+1);batch.set(doc(db,'bookings',bkId+'-L'),mkBlockedDoc(bkId+'-L',name,id,c.name,localDs(nxt),'morning-afternoon',now));}
+    }
   });
   try{await batch.commit();toast('Đặt lịch thành công!');closeModal();}catch(e){toast('Lỗi: '+e.message);}
 }
@@ -2010,6 +2335,7 @@ window.setShift=setShift;
 window.toggleCam=toggleCam;
 window.toggleEL=toggleEL;
 window.onDateChange=onDateChange;
+window.onHybridChange=onHybridChange;
 window.setDiscType=setDiscType;
 window.updateFinal=updateFinal;
 window.submitBooking=submitBooking;
